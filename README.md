@@ -10,4 +10,5 @@ Local usage:
 Make sure you have the following dependencies:
 - nodejs
 - npm
+- nodemon
 - express
