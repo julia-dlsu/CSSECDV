@@ -20,7 +20,7 @@
     <h1> Sign-Up</h1>
     
     <div>
-      <ul>
+      <ul class="invalid-msg">
         <% if (typeof errors != 'undefined') { %> <% errors.forEach(error => { %>
           <li><%= error.message %></li>
           <% }) %> <% } %>
@@ -46,17 +46,17 @@
 
       <div class="form-group">
         <label for = "phone">Phone Number: </label>
-        <input type=text name = "phone" id = "phone" class = "form-control" placeholder = "09*********" pattern = "[0-9]{11}" required /> 
+        <input type=text name = "phone" id = "phone" class = "form-control" placeholder = "09*********" pattern = "09\d{9}" required /> 
       </div>
   
       <div class="form-group">		
         <label for= "uname">Username: </label>
-        <input type=text name = "uname" id = "uname" class = "form-control" placeholder = "Username" pattern = "[a-zA-Z0-9ÑñÉé.,!$%&#?^_\-+;:]{1,100}" required /> 
+        <input type=text name = "uname" id = "uname" class = "form-control" minlength = "1" maxlength = "100" placeholder = "Username" pattern = "[a-zA-Z0-9ÑñÉé.,!$%&#?^_\-+;:]{1,100}" required /> 
       </div>	
   
       <div class="form-group">		
-        <label for= "pass">Password: </label> 
-        <input type=password name ="pass" id ="pass"class = "form-control" minlength= "8" maxlength= "16" placeholder="Password" required />	
+        <label for= "password">Password: </label> 
+        <input type=password name ="password" id ="password"class = "form-control" minlength= "8" maxlength= "16" placeholder="Password" required />	
       </div>
 
       <div class="form-group">		

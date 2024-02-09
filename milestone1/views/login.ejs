@@ -14,15 +14,28 @@
   <div class="col-md-5 offset-md-3">
 		<div class= "contain">
 			<h1> Login</h1>
-				<form name = "Login" action ="/login"  method = "post" onsubmit= "return submitLog()">
+
+			<ul class="valid-msg">
+				<% if(messages.success_msg) { %>
+				<li><%= messages.success_msg %></li>
+				<% } %>
+			</ul>
+
+			<ul class="invalid-msg">
+				<% if (messages.error) { %>
+				<li><%= messages.error %></li>
+				<% } %>
+			</ul>
+
+				<form name = "Login" action ="/users/login"  method = "POST">
 					<div class="form-group">
 						<label for="email" >Email</label>
-						<input type=text name = "email" class="form-control" placeholder ="Email" maxlength =45 required>
+						<input type=text id="email" name = "email" class="form-control" placeholder ="Email" maxlength =45 required>
 					</div>	
 		
 					<div class = "form-group">
 						<label for="pass" >Password: </label>
-						<input type=password name="pass" class="form-control" placeholder= "Password" required>
+						<input type=password id="password" name="password" class="form-control" placeholder= "Password" required>
 					</div>	
 		
 					<div class= "form-group btn">

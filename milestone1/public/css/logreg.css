@@ -2,7 +2,12 @@ h1 {
 	text-align: center;
 }
 
-ul {
+.valid-msg {
+	color: green;
+	font-size: 90%;
+}
+
+.invalid-msg {
 	color: red;
 	font-size: 90%;
 }
