@@ -1,0 +1,46 @@
+h1 {
+	text-align: center;
+}
+
+ul {
+	color: red;
+	font-size: 90%;
+}
+
+.submit-btn {
+	margin-top: 5%;
+	margin-bottom: 5%;
+}
+
+.btn-img {
+	border-color: gray !important;
+}
+
+.btn {
+	color: white !important
+}
+
+.contain {
+	border: 1px solid #DFE0EB;
+	box-sizing: border-box;
+	min-width: 90%;
+	border-radius: 5px;
+	background: #FFFFFF;
+	margin: 10%;
+	padding: 3%
+}
+
+input:invalid {
+	border-color: red;
+	color: gray
+}
+
+input:valid{
+	border-bottom-color:green;
+	color:black;
+}
+
+input:placeholder-shown {
+	background:white;
+	border-color: gray;
+}
