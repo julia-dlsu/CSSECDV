@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const flash = require('express-flash');
 const passport = require('passport');
-
+const rateLimit = require('express-rate-limit')
 
 const initializePassport = require('./passportConfig');
 
@@ -39,6 +39,23 @@ app.use(flash());
 app.use(express.static('public'));
 app.use(express.static(__dirname + "/public"));
 
+
+/*
+const limiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+    message: "Too many requests have been made"
+  });
+*/
+
+const LoginLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+    message: "Too many login attempts have been made"
+  });
+
+//app.use(limiter)
+
 // ======= METHODS ======= //
 
 app.get('/', (req, res)=>{
@@ -49,7 +66,7 @@ app.get('/users/register', checkAuthenticated, (req, res)=>{
     res.render('register');
 });
 
-app.get('/users/login', checkAuthenticated, (req, res)=>{
+app.get('/users/login', LoginLimiter, checkAuthenticated, (req, res)=>{
     res.render('login');
 });
 
@@ -111,7 +128,7 @@ app.post('/users/register', async (req, res)=>{
     }
 
     // checks password length max
-    if (password.length < 16){
+    if (password.length > 16){
         errors.push({ message: "The password should be at most 16 characters." });
     }
 

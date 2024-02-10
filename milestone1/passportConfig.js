@@ -1,12 +1,16 @@
 const LocalStrategy = require("passport-local").Strategy;
 const { pool } = require("./dbConfig");
 const bcrypt = require("bcrypt");
+const rateLimit = require("express-rate-limit");
 
 function initialize(passport) {
   console.log("Initialized");
 
+
+//passport.use(limiter)
   const authenticateUser = (email, password, done) => {
     console.log(email, password);
+
     pool.query(
       `SELECT * FROM users WHERE email = $1`,
       [email],
@@ -28,6 +32,7 @@ function initialize(passport) {
             } else {
               //password is incorrect
               return done(null, false, { message: "Password is incorrect" });
+             
             }
           });
         } else {
