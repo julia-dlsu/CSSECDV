@@ -27,7 +27,7 @@
       </ul>
     </div>
 
-    <form name = "Register" action="/users/register" method="POST">
+    <form method="post" id = "form" enctype="multipart/form-data" action="/users/register">
       
       <div class="form-group">	
         <label for = "fname">First Name: </label>
@@ -63,11 +63,21 @@
         <label for= "cpass">Confirm Password: </label> 
         <input type=password name ="cpass" id ="cpass"class = "form-control" minlength= "8" maxlength= "16" placeholder="Confirm Password" required />	
       </div>
+<<<<<<< Updated upstream
   
       <div class="text-center submit-btn"> <a href = "/users/pfp">
         <input class="form-control btn btn-primary" type="submit"  value="Register" /> </a>
+=======
+
+      <div class="form-group">
+      <input type="file" id = "file" name="file" accept="image/*">
+>>>>>>> Stashed changes
       </div>
-      
+
+      <div class="text-center submit-btn"> <a href = "/users/register">
+        <input class="form-control btn btn-primary" type="submit"  value="Register" onclick="submitPfp()" /> </a>
+      </div>
+
     </form>
     
     <div class="form-group">Have an account already? <a href = "/users/login"> Login</a></div>

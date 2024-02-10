@@ -15,7 +15,13 @@ const storage = multer.diskStorage({
     } 
 });
 
+<<<<<<< Updated upstream
 const uploads = multer({storage:storage});  
+=======
+const uploads = multer({
+    dest: __dirname + "/uploads"
+});  
+>>>>>>> Stashed changes
 
 app.use(cors());
 
@@ -80,9 +86,10 @@ app.get("/users/logout", (req, res, next) => {
     });
 });
 
-app.post('/users/register', async (req, res)=>{
-    let { fname, lname, email, phone, uname, password, cpass } = req.body
+app.post('/users/register', uploads.single("file"), async (req, res)=>{
+    let { fname, lname, email, phone, uname, password, cpass } = req.body;
     console.log(req.body);
+    console.log(req.file);
 
     let errors = [];
 
@@ -152,7 +159,7 @@ app.post('/users/register', async (req, res)=>{
     else { // successful validation
         let hashedPass = await bcrypt.hash(password, 10);
         console.log(hashedPass);
-        const pic = "SAMPLE.png";
+        const pic = req.file.destination; //Can edit the last part to what we need
 
         pool.query(
             `SELECT * FROM users
@@ -179,8 +186,13 @@ app.post('/users/register', async (req, res)=>{
                                 throw err
                             }
                             console.log(results.rows);
+<<<<<<< Updated upstream
                             req.flash('success_msg', "You are now almost done.");
                             res.redirect('/users/pfp');
+=======
+                            req.flash('success_msg', "Successfully Registered!");
+                            res.redirect('/users/login');
+>>>>>>> Stashed changes
                         }
                     )
                 }
