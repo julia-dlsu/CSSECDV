@@ -27,13 +27,13 @@ function initialize(passport) {
               return done(null, user);
             } else {
               //password is incorrect
-              return done(null, false, { message: "Password is incorrect" });
+              return done(null, false, { message: "Incorrect username or password." });
             }
           });
         } else {
           // No user
           return done(null, false, {
-            message: "No user with that email address"
+            message: "Incorrect username or password."
           });
         }
       }
