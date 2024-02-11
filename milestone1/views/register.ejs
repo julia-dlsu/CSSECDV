@@ -27,7 +27,7 @@
       </ul>
     </div>
 
-    <form name = "Register" action="/users/register" method="POST">
+    <form name = "Register" action="/users/register" method="POST" enctype="multipart/form-data">
       
       <div class="form-group">	
         <label for = "fname">First Name: </label>
@@ -56,21 +56,21 @@
   
       <div class="form-group">		
         <label for= "password">Password: </label> 
-        <input type=password name ="password" id ="password"class = "form-control" minlength= "8" maxlength= "16" placeholder="Password" required />	
+        <input type=password name ="password" id ="password"class = "form-control" minlength= "8" maxlength= "32" placeholder="Password" required />	
       </div>
 
       <div class="form-group">		
         <label for= "cpass">Confirm Password: </label> 
-        <input type=password name ="cpass" id ="cpass"class = "form-control" minlength= "8" maxlength= "16" placeholder="Confirm Password" required />	
+        <input type=password name ="cpass" id ="cpass"class = "form-control" minlength= "8" maxlength= "32" placeholder="Confirm Password" required />	
       </div>
       
-      <!-- <div class="form-group">
+      <div class="form-group">
         <label for ="image">Upload Profile Picture: </td>
         <div style="height: 0px; overflow: hidden;">
           <input type=file accept="image/*" id="image" name="image" onchange="return validPicture()" required />
         </div>
         <button type="button" class="btn btn-secondary btn-sm" onclick="uploadImg()">Upload Image</button>
-      </div> -->
+      </div>
   
       <div class="text-center submit-btn">
         <input class="form-control btn btn-primary" type="submit"  value="Register" />

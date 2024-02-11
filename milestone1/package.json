@@ -10,16 +10,20 @@
   "author": "Tustin Choa, Julia de Veyra, Kyla Lacson",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.511.0",
+    "@aws-sdk/s3-request-presigner": "^3.511.0",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
-    "dotenv": "^16.4.1",
+    "dotenv": "^16.4.2",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
     "express-flash": "^0.0.2",
     "express-session": "^1.18.0",
+    "multer": "^1.4.5-lts.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "sharp": "^0.33.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"
