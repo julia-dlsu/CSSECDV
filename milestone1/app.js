@@ -7,6 +7,7 @@ const session = require('express-session');
 const flash = require('express-flash');
 const passport = require('passport');
 const rateLimit = require('express-rate-limit')
+const sessionTimeout = 30 * 60 * 1000; // 30 minutes (in milliseconds)
 
 const initializePassport = require('./passportConfig');
 
@@ -28,7 +29,12 @@ app.use(session({
 
     resave: false,
 
-    saveUninitialized: false
+    saveUninitialized: false,
+
+    cookie: {
+        maxAge: sessionTimeout,
+    }
+
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -40,13 +46,13 @@ app.use(express.static('public'));
 app.use(express.static(__dirname + "/public"));
 
 
-/*
+
 const limiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 5, // limit each IP to 5 requests per windowMs
+    max: 10, // limit each IP to 5 requests per windowMs
     message: "Too many requests have been made"
   });
-*/
+
 
 const LoginLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
@@ -54,7 +60,7 @@ const LoginLimiter = rateLimit({
     message: "Too many login attempts have been made"
   });
 
-//app.use(limiter)
+app.use(limiter)
 
 // ======= METHODS ======= //
 
