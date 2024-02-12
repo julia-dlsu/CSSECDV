@@ -62,6 +62,8 @@ app.use(express.static(__dirname + "/public"));
 
 // ======= METHODS ======= //
 
+// ======= USERS: GET ======= //
+
 app.get('/', (req, res)=>{
     res.render('index');
 });
@@ -74,7 +76,7 @@ app.get('/users/login', checkAuthenticated, (req, res)=>{
     res.render('login');
 });
 
-app.get('/users/dashboard', checkNotAuthenticated, async (req, res)=>{
+app.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     const getObjectParams = {
         Bucket: bucketName,
         Key: req.user.username, // file name
@@ -83,7 +85,6 @@ app.get('/users/dashboard', checkNotAuthenticated, async (req, res)=>{
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
     return res.render('dashboard', { user: req.user.username, userpic: url });
-    //res.render('dashboard', { user: req.user.username });
 });
 
 app.get("/users/logout", (req, res, next) => {
@@ -92,6 +93,25 @@ app.get("/users/logout", (req, res, next) => {
         res.redirect("/");
     });
 });
+
+// ======= ADMIN: GET ======= //
+
+app.get('/admin/login', checkAuthenticated, (req, res)=>{
+    res.render('adminLogin');
+});
+
+app.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getObjectParams = {
+        Bucket: bucketName,
+        Key: req.user.username, // file name
+    }
+    const command = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+    return res.render('bookAdmin', { user: req.user.username, userpic: url });
+});
+
+// ======= USERS: POST ======= //
 
 app.post('/users/register', upload.single("image"), async (req, res)=>{
     let { fname, lname, email, phone, uname, password, cpass } = req.body
@@ -196,9 +216,9 @@ app.post('/users/register', upload.single("image"), async (req, res)=>{
                     res.render("register", { errors });
                 } else{ // register the user
                     pool.query(
-                        `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7)
-                        RETURNING id, password`, [fname, lname, uname, email, phone, uname, hashedPass], (err, results)=>{
+                        `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                        RETURNING id, password`, [fname, lname, uname, email, phone, uname, hashedPass, 'user'], (err, results)=>{
                             if (err){
                                 throw err
                             }
@@ -221,18 +241,40 @@ app.post("/users/login",
     })
 );
 
+// ======= USERS: POST ======= //
+app.post("/admin/login",
+    passport.authenticate("local", {
+        successRedirect: "/admin/dashboard",
+        failureRedirect: "/admin/login",
+        failureFlash: true
+    })
+);
+
+// ======= AUTHENTICATION METHODS ======= //
+
 function checkAuthenticated(req, res, next){
     if (req.isAuthenticated()){
-        return res.redirect('/users/dashboard');
+        if (req.user.role === 'user') {
+            return res.redirect('/users/dashboard');
+        } else if (req.user.role === 'admin'){
+            return res.redirect('/admin/dashboard');
+        }
     }
     next();
 };
 
-function checkNotAuthenticated(req, res, next){
-    if (req.isAuthenticated()){
+function checkNotAuthenticatedUser(req, res, next){
+    if (req.isAuthenticated() && req.user.role === 'user'){
         return next();
     }
     res.redirect('/users/login');
+}
+
+function checkNotAuthenticatedAdmin(req, res, next){
+    if (req.isAuthenticated() && req.user.role === 'admin'){
+        return next();
+    }
+    res.redirect('/admin/login');
 }
 
 app.listen(PORT, ()=>{

@@ -25,6 +25,10 @@ h1 {
 	color: white !important
 }
 
+.admin-btn {
+	margin-top: 3% !important;
+}
+
 .contain {
 	border: 1px solid #DFE0EB;
 	box-sizing: border-box;

@@ -46,6 +46,7 @@ function initialize(passport) {
       authenticateUser
     )
   );
+
   // Stores user details inside session. serializeUser determines which data of the user
   // object should be stored in the session. The result of the serializeUser method is attached
   // to the session as req.session.passport.user = {}. Here for instance, it would be (as we provide
