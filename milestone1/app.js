@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 const express = require('express')
 const ejs = require("ejs");
 const app = express();
@@ -23,11 +24,16 @@ const uploads = multer({
 });  
 >>>>>>> Stashed changes
 
+<<<<<<< Updated upstream
 app.use(cors());
 
 const initializePassport = require('./passportConfig');
 
 initializePassport(passport);
+=======
+const storage = multer.memoryStorage()
+var upload = multer({ storage: storage});
+>>>>>>> Stashed changes
 
 const PORT = process.env.PORT || 4000;
 
@@ -86,12 +92,59 @@ app.get("/users/logout", (req, res, next) => {
     });
 });
 
+<<<<<<< Updated upstream
 app.post('/users/register', uploads.single("file"), async (req, res)=>{
     let { fname, lname, email, phone, uname, password, cpass } = req.body;
     console.log(req.body);
     console.log(req.file);
 
     let errors = [];
+=======
+app.post('/users/register', upload.single("image"), async (req, res)=>{
+    let { fname, lname, email, phone, uname, password, cpass } = req.body
+    const file = req.file
+    console.log(req.file);
+    let errors = [];
+
+    // size check
+    const maxSize = 1024 * 1024; // 1mb
+    if (req.file.size > maxSize ){
+        errors.push({ message: "Max upload size 1MB." });
+    }
+
+    // extention based file type check
+    if (req.file.mimetype != "image/jpeg" && req.file.mimetype != "image/jpg" && req.file.mimetype != "image/png"){
+        errors.push({ message: "File is not a .PNG .JPEG or .JPG file." });
+    }
+
+    // file siggy based file type check
+    buffer = req.file.buffer
+    const magicNum = buffer.toString('hex', 0, 4);
+    const pngNum = "89504e47"
+    const jpegNum = "ffd8ffe0"
+    const riffNum = "52494646"
+    if (magicNum !== pngNum && magicNum !== jpegNum && magicNum !== riffNum){
+        errors.push({ message: ".PNG .JPEG or .JPG files only." });
+    }
+    else{
+    // resize image
+    const fileBuffer = await sharp(req.file.buffer)
+        .resize({height: 180, width: 180, fit: "contain" })
+        .toBuffer();
+
+    // generate file name
+    const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex')   
+    const fileName = generateFileName()
+
+    // config the upload details to send to s3
+    const uploadParams = {
+        Bucket: bucketName,
+        Body: fileBuffer,  // actual image data
+        Key: req.body.uname, // becomes the file name
+        ContentType: file.mimetype
+    };
+    }
+>>>>>>> Stashed changes
 
     // check that there are no empty inputs
     if (!fname || !lname || !email || !phone || !uname || !password || !cpass ) {
