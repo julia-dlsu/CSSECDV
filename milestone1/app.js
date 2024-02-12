@@ -111,6 +111,13 @@ app.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
     return res.render('bookAdmin', { user: req.user.username, userpic: url });
 });
 
+app.get("/admin/logout", (req, res, next) => {
+    req.logout(function(err){
+        if (err) { return next(err); }
+        res.redirect("/");
+    });
+});
+
 // ======= USERS: POST ======= //
 
 app.post('/users/register', upload.single("image"), async (req, res)=>{
