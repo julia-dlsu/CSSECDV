@@ -8,6 +8,7 @@ const flash = require('express-flash');
 const passport = require('passport');
 const multer  = require('multer')
 const sharp = require('sharp');
+const crypto = require('crypto');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -79,7 +80,7 @@ app.get('/users/login', checkAuthenticated, (req, res)=>{
 app.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     const getObjectParams = {
         Bucket: bucketName,
-        Key: req.user.username, // file name
+        Key: req.user.profilepic, // file name
     }
     const command = new GetObjectCommand(getObjectParams);
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
@@ -103,7 +104,7 @@ app.get('/admin/login', checkAuthenticated, (req, res)=>{
 app.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
     const getObjectParams = {
         Bucket: bucketName,
-        Key: req.user.username, // file name
+        Key: req.user.profilepic, // file name
     }
     const command = new GetObjectCommand(getObjectParams);
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
@@ -120,11 +121,32 @@ app.get("/admin/logout", (req, res, next) => {
 
 // ======= USERS: POST ======= //
 
+const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
 app.post('/users/register', upload.single("image"), async (req, res)=>{
     let { fname, lname, email, phone, uname, password, cpass } = req.body
     const file = req.file
 
-    // [TODO]: file validation
+    // ======= FILE VALIDATION ======= //
+    // size check
+    const maxSize = 1024 * 1024 * 1; // 1 for 1mb
+    if (req.file.size > maxSize ){
+        errors.push({ message: "Max upload size 1MB." });
+    }
+ 
+    // extention based file type check
+    if (req.file.mimetype != "image/jpeg" && req.file.mimetype != "image/jpg" && req.file.mimetype != "image/png"){
+        errors.push({ message: "File is not a .PNG .JPEG or .JPG file." });
+    }
+ 
+    // file siggy based file type check
+    buffer = req.file.buffer
+    const magicNum = buffer.toString('hex', 0, 4);
+    const pngNum = "89504e47"
+    const jpegNum = "ffd8ffe0"
+    const riffNum = "52494646"
+    if (magicNum !== pngNum && magicNum !== jpegNum && magicNum !== riffNum){
+        errors.push({ message: ".PNG .JPEG or .JPG files only." });
+    }
 
     // resize image
     const fileBuffer = await sharp(req.file.buffer)
@@ -132,10 +154,11 @@ app.post('/users/register', upload.single("image"), async (req, res)=>{
         .toBuffer();
 
     // config the upload details to send to s3
+    const fileName = generateFileName()
     const uploadParams = {
         Bucket: bucketName,
         Body: fileBuffer,  // actual image data
-        Key: req.body.uname, // becomes the file name
+        Key: fileName, // becomes the file name
         ContentType: file.mimetype
     };
 
@@ -225,7 +248,7 @@ app.post('/users/register', upload.single("image"), async (req, res)=>{
                     pool.query(
                         `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                        RETURNING id, password`, [fname, lname, uname, email, phone, uname, hashedPass, 'user'], (err, results)=>{
+                        RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
                             if (err){
                                 throw err
                             }
