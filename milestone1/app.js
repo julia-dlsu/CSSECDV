@@ -6,12 +6,35 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const flash = require('express-flash');
 const passport = require('passport');
+const multer  = require('multer')
+const sharp = require('sharp');
+
+const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+
 const rateLimit = require('express-rate-limit')
 const sessionTimeout = 30 * 60 * 1000; // 30 minutes (in milliseconds)
 
-const initializePassport = require('./passportConfig');
+require("dotenv").config();
 
+const bucketName = process.env.AWS_BUCKET_NAME
+const bucketRegion = process.env.AWS_BUCKET_REGION
+const accessKeyId = process.env.AWS_ACCESS_KEY
+const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+
+const s3 =  new S3Client({
+    region: bucketRegion,
+    credentials: {
+        accessKeyId,
+        secretAccessKey
+    }
+});
+
+const initializePassport = require('./passportConfig');
 initializePassport(passport);
+
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
 
 const PORT = process.env.PORT || 4000;
 
@@ -29,12 +52,7 @@ app.use(session({
 
     resave: false,
 
-    saveUninitialized: false,
-
-    cookie: {
-        maxAge: sessionTimeout,
-    }
-
+    saveUninitialized: false
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -44,8 +62,6 @@ app.use(flash());
 // serve static files
 app.use(express.static('public'));
 app.use(express.static(__dirname + "/public"));
-
-
 
 const limiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
@@ -60,7 +76,7 @@ const LoginLimiter = rateLimit({
     message: "Too many login attempts have been made"
   });
 
-app.use(limiter)
+//app.use(limiter)
 
 // ======= METHODS ======= //
 
@@ -76,8 +92,16 @@ app.get('/users/login', LoginLimiter, checkAuthenticated, (req, res)=>{
     res.render('login');
 });
 
-app.get('/users/dashboard', checkNotAuthenticated, (req, res)=>{
-    res.render('dashboard', { user: req.user.username});
+app.get('/users/dashboard', checkNotAuthenticated, async (req, res)=>{
+    const getObjectParams = {
+        Bucket: bucketName,
+        Key: req.user.username, // file name
+    }
+    const command = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+    return res.render('dashboard', { user: req.user.username, userpic: url });
+    //res.render('dashboard', { user: req.user.username });
 });
 
 app.get("/users/logout", (req, res, next) => {
@@ -87,9 +111,24 @@ app.get("/users/logout", (req, res, next) => {
     });
 });
 
-app.post('/users/register', async (req, res)=>{
+app.post('/users/register', upload.single("image"), async (req, res)=>{
     let { fname, lname, email, phone, uname, password, cpass } = req.body
-    console.log(req.body);
+    const file = req.file
+
+    // [TODO]: file validation
+
+    // resize image
+    const fileBuffer = await sharp(req.file.buffer)
+        .resize({height: 180, width: 180, fit: "contain" })
+        .toBuffer();
+
+    // config the upload details to send to s3
+    const uploadParams = {
+        Bucket: bucketName,
+        Body: fileBuffer,  // actual image data
+        Key: req.body.uname, // becomes the file name
+        ContentType: file.mimetype
+    };
 
     let errors = [];
 
@@ -133,11 +172,6 @@ app.post('/users/register', async (req, res)=>{
         errors.push({ message: "The password should be at least 8 characters." });
     }
 
-    // checks password length max
-    if (password.length > 16){
-        errors.push({ message: "The password should be at most 16 characters." });
-    }
-
     const upper = /[A-Z]/;
     const lower = /[a-z]/;
     const digit = /[0-9]/;
@@ -159,7 +193,8 @@ app.post('/users/register', async (req, res)=>{
     else { // successful validation
         let hashedPass = await bcrypt.hash(password, 10);
         console.log(hashedPass);
-        const pic = "SAMPLE.png";
+        // send data to s3 bucket
+        await s3.send(new PutObjectCommand(uploadParams));
 
         pool.query(
             `SELECT * FROM users
@@ -181,7 +216,7 @@ app.post('/users/register', async (req, res)=>{
                     pool.query(
                         `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password)
                         VALUES ($1, $2, $3, $4, $5, $6, $7)
-                        RETURNING id, password`, [fname, lname, uname, email, phone, pic, hashedPass], (err, results)=>{
+                        RETURNING id, password`, [fname, lname, uname, email, phone, uname, hashedPass], (err, results)=>{
                             if (err){
                                 throw err
                             }
@@ -196,8 +231,7 @@ app.post('/users/register', async (req, res)=>{
     }
 });
 
-app.post(
-    "/users/login",
+app.post("/users/login",
     passport.authenticate("local", {
         successRedirect: "/users/dashboard",
         failureRedirect: "/users/login",
