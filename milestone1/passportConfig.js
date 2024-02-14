@@ -1,6 +1,7 @@
 const LocalStrategy = require("passport-local").Strategy;
 const { pool } = require("./dbConfig");
 const bcrypt = require("bcrypt");
+const rateLimit = require('express-rate-limit');
 
 function initialize(passport) {
   console.log("Initialized");
@@ -14,7 +15,9 @@ function initialize(passport) {
         if (err) {
           throw err;
         }
-        console.log(results.rows);
+       // console.log(results.rows);
+
+       //redirect to forget-password page when failed_login_attempts >= 5
 
         if (results.rows.length > 0) {
           const user = results.rows[0];
@@ -24,10 +27,17 @@ function initialize(passport) {
               console.log(err);
             }
             if (isMatch) {
+              //reset failed_login_attempt
+              pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
               return done(null, user);
             } else {
               //password is incorrect
+              //increment failed_login_attempts
+              pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
               return done(null, false, { message: "Incorrect username or password." });
+
+              //redirect to forget password if failed_login_attempts reach more than 5
+              //but need to ensure that the user cant access the login page again after 5++ failed attempts
             }
           });
         } else {
@@ -36,6 +46,7 @@ function initialize(passport) {
             message: "Incorrect username or password."
           });
         }
+        console.log(results.rows);
       }
     );
   };

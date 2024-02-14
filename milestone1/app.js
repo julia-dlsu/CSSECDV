@@ -9,6 +9,9 @@ const passport = require('passport');
 const multer  = require('multer')
 const sharp = require('sharp');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer'); 
+
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -37,7 +40,8 @@ const upload = multer({ storage: storage })
 const PORT = process.env.PORT || 4000;
 
 app.set('view engine', 'ejs');
-app.use(express.urlencoded({extended: false}));
+//app.use(express.urlencoded({extended: false}));
+//app.use(express.urlencoded({ extended: true }));
 
 // MIDDLESWARES: configuration for handling API endpoint data
 app.use(express.json());
@@ -61,6 +65,19 @@ app.use(flash());
 app.use(express.static('public'));
 app.use(express.static(__dirname + "/public"));
 
+
+//separate loginlimiters for user and admin
+const UserLoginLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+    message: "Too many login attempts have been made"
+  });
+
+const AdminLoginLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+    message: "Too many login attempts have been made"
+  });
 // ======= METHODS ======= //
 
 // ======= USERS: GET ======= //
@@ -73,9 +90,17 @@ app.get('/users/register', checkAuthenticated, (req, res)=>{
     res.render('register');
 });
 
-app.get('/users/login', checkAuthenticated, (req, res)=>{
+app.get('/users/login', UserLoginLimiter, checkAuthenticated, (req, res)=>{
     res.render('login');
 });
+
+app.get('/users/forget-password', (req, res) => {
+    res.render('forget-password'); 
+  });
+
+app.get('/users/enter-PIN', (req,res) => {
+    res.render('enter-PIN'); 
+  });
 
 app.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     const getObjectParams = {
@@ -271,6 +296,124 @@ app.post("/users/login",
     })
 );
 
+
+app.post('/users/forget-password', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Check if email exists in the database
+        const results = await pool.query(
+            `SELECT * FROM users WHERE email = $1`,
+            [email]
+        );
+
+        //console.log(results.rows);
+
+        if (results.rows.length > 0) {
+            const pin = Math.floor(100000 + Math.random() * 900000);
+            const user = results.rows[0];
+
+            // Hash the pin before it gets stored in the database
+            const hashedPin = await bcrypt.hash(pin.toString(), 10);
+
+            console.log(hashedPin);
+
+            // Store hashedPin variable in the database (in the column PIN)
+            await pool.query(
+                `UPDATE users SET pin = $1 WHERE email = $2`,
+                [hashedPin, user.email]
+            );
+
+            // Send pin to email
+            sendPasswordResetEmail(email, pin);
+
+            // Redirect to enter PIN page
+            console.log(email)
+            res.redirect(`/users/enter-PIN?email=${encodeURIComponent(email)}`);
+
+        } else {
+            // If email not found, redirect to the password forget page with an error message
+            res.redirect('/users/forget-password'); //placeholder for now
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+// Function to send a password reset email
+function sendPasswordResetEmail(email, pin) {
+    // Configure nodemailer to send emails
+    const transporter = nodemailer.createTransport({
+      service: 'hotmail',
+      auth: {
+        user: 'teamrotom@hotmail.com',
+        pass: process.env.EMAIL_PASSWORD,
+
+      },
+    });
+  
+    // Email content
+    const mailOptions = {
+      from: 'teamrotom@hotmail.com',
+      to: email,
+      subject: 'Password Reset Pin',
+      text: `Your password reset pin is: ${pin}`,
+    };
+  
+    // Send the email
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error('Error sending email:', err);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
+}
+
+app.post('/users/enter-PIN', async (req, res) => {
+    const { pin } = req.body;
+    const email = req.query.email ? decodeURIComponent(req.query.email) : null; //this is null :')))
+    console.log(`Email parameter from URL: ${email}`);
+    
+    console.log(`Pin is: ${pin}`);
+
+    try {
+        // Retrieve user details based on the provided PIN
+        const result = await pool.query(
+            `SELECT * FROM users WHERE email = $1`,
+            [email]
+        ); 
+
+        if (result.rows.length > 0) {
+            const user = result.rows[0];
+            
+            // Decrypt the stored PIN for comparison
+            const decryptedPinMatch = await bcrypt.compare(pin.toString(), user.pin);
+            console.log('here')
+
+            if (decryptedPinMatch) {
+                // Valid PIN, redirect to the reset password page
+                res.redirect('/users/reset-password');
+            } else {
+                // Invalid PIN, display an error message
+                req.flash("Invalid PIN")
+                res.redirect('/users/enter-PIN');
+            }
+        } else {
+            // Invalid PIN, display an error message
+            console.log('pin not found')
+            req.flash("User not found")
+            res.redirect(`/users/enter-PIN?email=${encodeURIComponent(email)}`);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+//app.post("/users/reset-password")
 // ======= USERS: POST ======= //
 app.post("/admin/login",
     passport.authenticate("local", {
