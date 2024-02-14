@@ -15,7 +15,6 @@ function initialize(passport) {
         if (err) {
           throw err;
         }
-       // console.log(results.rows);
 
        //redirect to forget-password page when failed_login_attempts >= 5
 

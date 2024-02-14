@@ -311,6 +311,7 @@ app.post('/users/forget-password', async (req, res) => {
 
         if (results.rows.length > 0) {
             const pin = Math.floor(100000 + Math.random() * 900000);
+            console.log("PIN: ", pin);
             const user = results.rows[0];
 
             // Hash the pin before it gets stored in the database
@@ -375,42 +376,69 @@ function sendPasswordResetEmail(email, pin) {
 app.post('/users/enter-PIN', async (req, res) => {
     const { pin } = req.body;
     const email = req.body.email;
-    console.log(`Email parameter from URL: ${email}`);
+    console.log('Email for PIN: ', email);
+    console.log(typeof email);
     
     console.log(`Pin is: ${pin}`);
 
-    try {
-        // Retrieve user details based on the provided PIN
-        const result = await pool.query(
-            `SELECT * FROM users WHERE email = $1`,
-            [email]
-        ); 
-
-        if (result.rows.length > 0) {
-            const user = result.rows[0];
-            
-            // Decrypt the stored PIN for comparison
-            const decryptedPinMatch = await bcrypt.compare(pin.toString(), user.pin);
-            console.log('here')
-
-            if (decryptedPinMatch) {
-                // Valid PIN, redirect to the reset password page
-                res.redirect('/users/reset-password');
-            } else {
-                // Invalid PIN, display an error message
-                req.flash("Invalid PIN")
-                res.render('enter-PIN', { email: email });
-            }
-        } else {
-            // Invalid PIN, display an error message
-            console.log('pin not found')
-            req.flash("User not found")
-            res.render('enter-PIN', { email: email });
+    pool.query(
+        `SELECT * FROM users WHERE email = $1`,
+        [email],
+        (err, results) => {
+          if (err) {
+            throw err;
+          }
+          console.log(results.rows);
+  
+          if (results.rows.length > 0) {
+            const user = results.rows[0];
+          } else {
+            // No user
+            console.log("User does not exist.");
+          }
         }
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).send('Internal Server Error');
-    }
+      );
+
+    // try {
+    //     // Retrieve user details based on the provided PIN
+    //     pool.query(
+    //         `SELECT * FROM users
+    //         WHERE email = $1`, [email], (err, results)=>{
+
+    //             console.log(results.rows);
+    //         }
+    //     );
+    //     // const result = await pool.query(
+    //     //     `SELECT * FROM users WHERE email = $1`,
+    //     //     [email]
+    //     // ); 
+    //     // console.log(result);
+
+    //     // if (result.rows.length > 0) {
+    //     //     const user = result.rows[0];
+            
+    //     //     // Decrypt the stored PIN for comparison
+    //     //     const decryptedPinMatch = await bcrypt.compare(pin.toString(), user.pin);
+    //     //     console.log('here')
+
+    //     //     if (decryptedPinMatch) {
+    //     //         // Valid PIN, redirect to the reset password page
+    //     //         res.redirect('/users/reset-password');
+    //     //     } else {
+    //     //         // Invalid PIN, display an error message
+    //     //         req.flash("Invalid PIN")
+    //     //         res.render('enter-PIN', { email: email });
+    //     //     }
+    //     // } else {
+    //     //     // Invalid PIN, display an error message
+    //     //     console.log('pin not found')
+    //     //     req.flash("User not found")
+    //     //     res.render('enter-PIN', { email: email });
+    //     // }
+    // } catch (error) {
+    //     console.error('Error:', error);
+    //     res.status(500).send('Internal Server Error');
+    // }
 });
 
 //app.post("/users/reset-password")
