@@ -3,6 +3,9 @@ const { pool } = require("./dbConfig");
 const bcrypt = require("bcrypt");
 const rateLimit = require('express-rate-limit');
 
+const RATE_LIMIT_THRESHOLD = 5; // Maximum allowed failed login attempts
+const RATE_LIMIT_TIMEFRAME = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 function initialize(passport) {
   console.log("Initialized");
 
@@ -15,12 +18,22 @@ function initialize(passport) {
         if (err) {
           throw err;
         }
-       // console.log(results.rows);
-
        //redirect to forget-password page when failed_login_attempts >= 5
 
         if (results.rows.length > 0) {
           const user = results.rows[0];
+         
+          // Check rate limiting
+          const currentTimestamp = new Date().getTime();
+          const lastFailedAttemptTimestamp = user.last_failed_login_attempt || 0; //make new column in db with last_failed_login_attemt time
+
+       /* if (
+            user.failed_login_attempts >= RATE_LIMIT_THRESHOLD 
+        ) {
+            // Too many failed login attempts within the time frame
+            return done(null, false, { message: "Too many failed login attempts. Please try again later." });
+            
+        }*/
 
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
