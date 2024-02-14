@@ -141,38 +141,44 @@ const controller = {
             // send data to s3 bucket
             await s3.send(new PutObjectCommand(uploadParams));
     
-            pool.query(
-                `SELECT * FROM users
-                WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
-                    if (err){
-                        throw err
-                    }
-                    console.log(results.rows);
-    
-                    if (results.rows.length > 0){
-                        if (results.rows[0].email === email){
-                            errors.push({ message: "Email already registered." });
-                        }
-                        if (results.rows[0].username === uname){
-                            errors.push({ message: "Username already registered." });
-                        }
-                        res.render("register", { errors });
-                    } else{ // register the user
-                        pool.query(
-                            `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                            RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
-                                if (err){
-                                    throw err
-                                }
-                                console.log(results.rows);
-                                req.flash('success_msg', "You are now registered. Please log in.");
-                                res.redirect('/users/login');
+            try{
+                pool.query(
+                    `SELECT * FROM users
+                    WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
+
+                        console.log(results.rows);
+        
+                        if (results.rows.length > 0){
+                            if (results.rows[0].email === email){
+                                errors.push({ message: "Email already registered." });
                             }
-                        )
+                            if (results.rows[0].username === uname){
+                                errors.push({ message: "Username already registered." });
+                            }
+                            res.render("register", { errors });
+                        } else{ // register the user
+                            try {
+                                pool.query(
+                                    `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                    RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
+                                        
+                                        console.log(results.rows);
+                                        req.flash('success_msg', "You are now registered. Please log in.");
+                                        res.redirect('/users/login');
+                                    }
+                                )
+                            } catch {
+                                console.error('Error:', error);
+                                res.status(500).send('Internal Server Error');
+                            }
+                        }
                     }
-                }
-            )
+                )
+            } catch {
+                console.error('Error:', error);
+                res.status(500).send('Internal Server Error');
+            }
         }
 
     }

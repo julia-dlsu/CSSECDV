@@ -7,37 +7,39 @@ function initialize(passport) {
 
   const authenticateUser = (email, password, done) => {
     console.log(email, password);
-    pool.query(
-      `SELECT * FROM users WHERE email = $1`,
-      [email],
-      (err, results) => {
-        if (err) {
-          throw err;
+    try {
+      pool.query(
+        `SELECT * FROM users WHERE email = $1`,
+        [email],
+        (err, results) => {
+          console.log(results.rows);
+  
+          if (results.rows.length > 0) {
+            const user = results.rows[0];
+  
+            bcrypt.compare(password, user.password, (err, isMatch) => {
+              if (err) {
+                console.log(err);
+              }
+              if (isMatch) {
+                return done(null, user);
+              } else {
+                //password is incorrect
+                return done(null, false, { message: "Incorrect username or password." });
+              }
+            });
+          } else {
+            // No user
+            return done(null, false, {
+              message: "Incorrect username or password."
+            });
+          }
         }
-        console.log(results.rows);
-
-        if (results.rows.length > 0) {
-          const user = results.rows[0];
-
-          bcrypt.compare(password, user.password, (err, isMatch) => {
-            if (err) {
-              console.log(err);
-            }
-            if (isMatch) {
-              return done(null, user);
-            } else {
-              //password is incorrect
-              return done(null, false, { message: "Incorrect username or password." });
-            }
-          });
-        } else {
-          // No user
-          return done(null, false, {
-            message: "Incorrect username or password."
-          });
-        }
-      }
-    );
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).send('Internal Server Error');
+    }
   };
 
   passport.use(
