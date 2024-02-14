@@ -98,9 +98,9 @@ app.get('/users/forget-password', (req, res) => {
     res.render('forget-password'); 
   });
 
-app.get('/users/enter-PIN', (req,res) => {
-    res.render('enter-PIN'); 
-  });
+// app.get('/users/enter-PIN', (req,res) => {
+//     res.render('enter-PIN'); 
+//   });
 
 app.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     const getObjectParams = {
@@ -328,8 +328,8 @@ app.post('/users/forget-password', async (req, res) => {
             sendPasswordResetEmail(email, pin);
 
             // Redirect to enter PIN page
-            console.log(email)
-            res.redirect(`/users/enter-PIN?email=${encodeURIComponent(email)}`);
+            console.log("email: ", email)
+            res.render('enter-PIN', { email: email });
 
         } else {
             // If email not found, redirect to the password forget page with an error message
@@ -374,7 +374,7 @@ function sendPasswordResetEmail(email, pin) {
 
 app.post('/users/enter-PIN', async (req, res) => {
     const { pin } = req.body;
-    const email = req.query.email ? decodeURIComponent(req.query.email) : null; //this is null :')))
+    const email = req.body.email;
     console.log(`Email parameter from URL: ${email}`);
     
     console.log(`Pin is: ${pin}`);
@@ -399,13 +399,13 @@ app.post('/users/enter-PIN', async (req, res) => {
             } else {
                 // Invalid PIN, display an error message
                 req.flash("Invalid PIN")
-                res.redirect('/users/enter-PIN');
+                res.render('enter-PIN', { email: email });
             }
         } else {
             // Invalid PIN, display an error message
             console.log('pin not found')
             req.flash("User not found")
-            res.redirect(`/users/enter-PIN?email=${encodeURIComponent(email)}`);
+            res.render('enter-PIN', { email: email });
         }
     } catch (error) {
         console.error('Error:', error);
