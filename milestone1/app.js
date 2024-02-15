@@ -68,7 +68,7 @@ app.use(express.static(__dirname + "/public"));
 
 //separate loginlimiters for user and admin
 const UserLoginLimiter = rateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes
+    windowMs: 1 * 60 * 1000, // 5 minutes
     max: 5, // limit each IP to 5 requests per windowMs
     message: "Too many login attempts have been made"
   });
@@ -91,8 +91,9 @@ app.get('/users/register', checkAuthenticated, (req, res)=>{
 });
 //EDIT?
 app.get('/users/login', UserLoginLimiter, checkAuthenticated, (req, res)=>{
-    if (res.locals.rateLimit) {
-        // If the rate limit is active, redirect the user to another page
+    if (req.rateLimit.remaining <= 0 && !req.session.passwordChanged) { //edit this so that this pushes through if user.failed_login_attempts >= 5 
+        // If the rate limit is active and the password has not been changed, redirect the user to another page
+        console.log(`Rate limit reached. Limit will reset at ${new Date(req.rateLimit.resetTime)}`);
         return res.redirect('/users/forget-password');
     }
     res.render('login');
@@ -471,6 +472,7 @@ app.post("/users/reset-password", async (req, res) => {
                             console.log('setting failed login attempts to 0');
                             pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
                             req.flash('success_msg', "You have changed your password. Please log in.");
+                            req.session.passwordChanged = true;
                             res.redirect('/users/login');
                          }
                             
@@ -487,7 +489,7 @@ app.post("/users/reset-password", async (req, res) => {
 })
 
 // ======= USERS: POST ======= //
-app.post("/admin/login",
+app.post("/admin/login", AdminLoginLimiter,
     passport.authenticate("local", {
         successRedirect: "/admin/dashboard",
         failureRedirect: "/admin/login",

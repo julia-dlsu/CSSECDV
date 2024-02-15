@@ -24,7 +24,9 @@ function initialize(passport) {
           const user = results.rows[0];
          
           // Check rate limiting
-          const currentTimestamp = new Date().getTime();
+          const currentTimestamp = new Date()
+          console.log(currentTimestamp)
+          console.log('timestamp above')
           const lastFailedAttemptTimestamp = user.last_failed_login_attempt || 0; //make new column in db with last_failed_login_attemt time
 
        /* if (
@@ -41,12 +43,14 @@ function initialize(passport) {
             }
             if (isMatch) {
               //reset failed_login_attempt
-              pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
+              pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW(), last_failed_login_attempt = 0 WHERE email = $1`, [email]);
+              console.log('successful login attempt')
               return done(null, user);
             } else {
               //password is incorrect
               //increment failed_login_attempts
-              pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
+              pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW(), last_failed_login_attempt = NOW() WHERE email = $1`, [email]); 
+              console.log('failed login attempt')
               return done(null, false, { message: "Incorrect username or password." });
 
               //redirect to forget password if failed_login_attempts reach more than 5
