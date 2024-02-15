@@ -7,6 +7,12 @@ h1 {
 	font-size: 90%;
 }
 
+.hidden-email {
+	height: 0% !important;
+	font-size: 0% !important;
+	display: none !important;
+}
+
 .invalid-msg {
 	color: red;
 	font-size: 90%;

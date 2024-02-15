@@ -74,6 +74,7 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     return res.render('dashboard', { user: req.user.username, userpic: url });
 });
 
+
 // logout user
 router.get("/users/logout", (req, res, next) => {
     req.logout(function(err){
