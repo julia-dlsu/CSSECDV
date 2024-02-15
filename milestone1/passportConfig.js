@@ -7,39 +7,47 @@ function initialize(passport) {
 
   const authenticateUser = (email, password, done) => {
     console.log(email, password);
-    try {
-      pool.query(
-        `SELECT * FROM users WHERE email = $1`,
-        [email],
-        (err, results) => {
-          console.log(results.rows);
-  
-          if (results.rows.length > 0) {
-            const user = results.rows[0];
-  
-            bcrypt.compare(password, user.password, (err, isMatch) => {
-              if (err) {
-                console.log(err);
-              }
-              if (isMatch) {
-                return done(null, user);
-              } else {
-                //password is incorrect
-                return done(null, false, { message: "Incorrect username or password." });
-              }
-            });
-          } else {
-            // No user
-            return done(null, false, {
-              message: "Incorrect username or password."
-            });
-          }
+    pool.query(
+      `SELECT * FROM users WHERE email = $1`,
+      [email],
+      (err, results) => {
+        if (err) {
+          throw err;
         }
-      );
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).send('Internal Server Error');
-    }
+
+        if (results.rows.length > 0) {
+          const user = results.rows[0];
+        
+
+          bcrypt.compare(password, user.password, (err, isMatch) => {
+            if (err) {
+              console.log(err);
+            }
+            if (isMatch) {
+              //reset failed_login_attempt
+              pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
+              console.log('successful login attempt')
+              return done(null, user);
+            } else {
+              //password is incorrect
+              //increment failed_login_attempts
+              pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
+              console.log('failed login attempt')
+              return done(null, false, { message: "Incorrect username or password." });
+              
+
+
+            
+        }});
+        } else {
+          // No user
+          return done(null, false, {
+            message: "Incorrect username or password."
+          });
+        }
+        console.log(results.rows);
+      }
+    );
   };
 
   passport.use(
