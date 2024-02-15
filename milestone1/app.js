@@ -68,15 +68,15 @@ app.use(express.static(__dirname + "/public"));
 
 //separate loginlimiters for user and admin
 const UserLoginLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 5 minutes
+    windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // limit each IP to 5 requests per windowMs
-    message: "Too many login attempts have been made"
+    message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
   });
 
 const AdminLoginLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // limit each IP to 5 requests per windowMs
-    message: "Too many login attempts have been made"
+    message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
   });
 // ======= METHODS ======= //
 
@@ -89,16 +89,20 @@ app.get('/', (req, res)=>{
 app.get('/users/register', checkAuthenticated, (req, res)=>{
     res.render('register');
 });
-//EDIT?
+/*
 app.get('/users/login', UserLoginLimiter, checkAuthenticated, (req, res)=>{
-    if (req.rateLimit.remaining <= 0 && !req.session.passwordChanged) { //edit this so that this pushes through if user.failed_login_attempts >= 5 
-        // If the rate limit is active and the password has not been changed, redirect the user to another page
+    console.log(`Remaining: ${req.rateLimit.remaining}`);
+   // console.log(`Reset Time: ${new Date(req.rateLimit.resetTime)}`);
+    if (req.rateLimit.remaining <= 0) { 
+        // If the rate limit is active, redirect the user to another page
         console.log(`Rate limit reached. Limit will reset at ${new Date(req.rateLimit.resetTime)}`);
         return res.redirect('/users/forget-password');
     }
     res.render('login');
+});*/
+app.get('/users/login', checkAuthenticated, (req, res)=>{
+    res.render('login');
 });
-
 app.get('/users/forget-password', (req, res) => {
     res.render('forget-password'); 
   });
@@ -127,7 +131,8 @@ app.get("/users/logout", (req, res, next) => {
 
 // ======= ADMIN: GET ======= //
 
-app.get('/admin/login', checkAuthenticated, (req, res)=>{
+app.get('/admin/login',  checkAuthenticated, (req, res)=>{
+
     res.render('adminLogin');
 });
 
@@ -293,7 +298,7 @@ app.post('/users/register', upload.single("image"), async (req, res)=>{
     }
 });
 
-app.post("/users/login",
+app.post("/users/login", UserLoginLimiter,
     passport.authenticate("local", {
         successRedirect: "/users/dashboard",
         failureRedirect: "/users/login",
@@ -301,6 +306,25 @@ app.post("/users/login",
     })
 );
 
+
+/*
+app.post('/users/login', UserLoginLimiter, (req, res, next) => {
+    console.log(`Remaining Requests: ${req.rateLimit.remaining}`);
+    console.log(`Reset Time: ${new Date(req.rateLimit.resetTime * 1000)}`);
+
+    if (req.rateLimit.remaining <= 0) {
+        console.log('Rate limit reached. Redirecting...');
+        return res.redirect('/users/forget-password');
+    }
+
+    // Continue with authentication logic
+    passport.authenticate('local', {
+        successRedirect: '/users/dashboard',
+        failureRedirect: '/users/login',
+        failureFlash: true
+    })(req, res, next);
+});
+*/
 
 app.post('/users/forget-password', async (req, res) => {
     const { email } = req.body;
@@ -315,8 +339,10 @@ app.post('/users/forget-password', async (req, res) => {
         //console.log(results.rows);
 
         if (results.rows.length > 0) {
-            const pin = Math.floor(100000 + Math.random() * 900000);
+            const pin = generateSecurePin();
             const user = results.rows[0];
+        
+            console.log(pin)
 
             // Hash the pin before it gets stored in the database
             const hashedPin = await bcrypt.hash(pin.toString(), 10);
@@ -337,8 +363,8 @@ app.post('/users/forget-password', async (req, res) => {
             res.render('enter-PIN', { email: email });
 
         } else {
-            // If email not found, redirect to the password forget page with an error message
-            res.redirect('/users/forget-password'); //placeholder for now
+            // If email not found, redirect to the password forget page 
+            res.redirect('/users/forget-password'); 
         }
     } catch (error) {
         console.error('Error:', error);
@@ -376,11 +402,19 @@ function sendPasswordResetEmail(email, pin) {
       }
     });
 }
+//function to generate a secure PIN
+function generateSecurePin() {
+    const randomBytes = crypto.randomBytes(2); //2 bytes for a 6-digit PIN
 
+    //converts random buffer to a hex string then to an integer
+    const pin = parseInt(randomBytes.toString('hex'), 16) % 900000 + 100000;
+    return pin;
+}
 
 app.post('/users/enter-PIN', async (req, res) => {
     const { pin } = req.body;
     const email = req.body.email; //string
+    let err_msg = '';
     console.log(`Email parameter from URL: ${email}`);
     
     console.log(`Pin is: ${pin}`);
@@ -391,8 +425,6 @@ app.post('/users/enter-PIN', async (req, res) => {
             `SELECT * FROM users WHERE email = $1`,
             [email]
         ); 
-       // console.log(typeof email)
-        //console.log(result.rows[0])
         if (result.rows.length > 0) {
             const user = result.rows[0];
             
@@ -405,15 +437,16 @@ app.post('/users/enter-PIN', async (req, res) => {
                 res.render('reset-password', { email: email });
             } else {
                 // Invalid PIN, display an error message
-                req.flash('error_msg',"Invalid PIN")
+                req.flash('success_msg', "Invalid PIN")
                 console.log('invalid pin')
                 res.render('enter-PIN', { email: email });
             }
         } else {
             // Invalid PIN, display an error message
             console.log('pin not found')
-            req.flash('error_msg',"User not found")
-            res.render('enter-PIN', { email: email });
+           // req.flash('error_msg',"User not found")
+           req.flash('success_msg', "Invalid PIN")
+            res.render('enter-PIN', { email: email});
         }
     } catch (error) {
         console.error('Error:', error);
@@ -450,7 +483,6 @@ app.post("/users/reset-password", async (req, res) => {
     }
 
         // checks if passwords match
-        //this doesnt seem to push through
     if (password != cpass){
         errors.push({ message: "Passwords do not match." });
     }
@@ -460,7 +492,7 @@ app.post("/users/reset-password", async (req, res) => {
         
             if (results.rows.length > 0){
                 const user = results.rows[0]
-                const newpassword = await bcrypt.hash(password, 10) //LMAO THIS IS EMPTY SJDHKGL
+                const newpassword = await bcrypt.hash(password, 10) 
                 console.log(newpassword)
 
                 pool.query(
@@ -472,7 +504,6 @@ app.post("/users/reset-password", async (req, res) => {
                             console.log('setting failed login attempts to 0');
                             pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
                             req.flash('success_msg', "You have changed your password. Please log in.");
-                            req.session.passwordChanged = true;
                             res.redirect('/users/login');
                          }
                             
@@ -495,6 +526,7 @@ app.post("/admin/login", AdminLoginLimiter,
         failureRedirect: "/admin/login",
         failureFlash: true
     })
+    
 );
 
 // ======= AUTHENTICATION METHODS ======= //

@@ -1,10 +1,6 @@
 const LocalStrategy = require("passport-local").Strategy;
 const { pool } = require("./dbConfig");
 const bcrypt = require("bcrypt");
-const rateLimit = require('express-rate-limit');
-
-const RATE_LIMIT_THRESHOLD = 5; // Maximum allowed failed login attempts
-const RATE_LIMIT_TIMEFRAME = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 function initialize(passport) {
   console.log("Initialized");
@@ -18,24 +14,10 @@ function initialize(passport) {
         if (err) {
           throw err;
         }
-       //redirect to forget-password page when failed_login_attempts >= 5
 
         if (results.rows.length > 0) {
           const user = results.rows[0];
-         
-          // Check rate limiting
-          const currentTimestamp = new Date()
-          console.log(currentTimestamp)
-          console.log('timestamp above')
-          const lastFailedAttemptTimestamp = user.last_failed_login_attempt || 0; //make new column in db with last_failed_login_attemt time
-
-       /* if (
-            user.failed_login_attempts >= RATE_LIMIT_THRESHOLD 
-        ) {
-            // Too many failed login attempts within the time frame
-            return done(null, false, { message: "Too many failed login attempts. Please try again later." });
-            
-        }*/
+        
 
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
@@ -43,20 +25,27 @@ function initialize(passport) {
             }
             if (isMatch) {
               //reset failed_login_attempt
-              pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW(), last_failed_login_attempt = 0 WHERE email = $1`, [email]);
+              pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
               console.log('successful login attempt')
               return done(null, user);
             } else {
               //password is incorrect
               //increment failed_login_attempts
-              pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW(), last_failed_login_attempt = NOW() WHERE email = $1`, [email]); 
+              pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
               console.log('failed login attempt')
               return done(null, false, { message: "Incorrect username or password." });
+              
 
-              //redirect to forget password if failed_login_attempts reach more than 5
-              //but need to ensure that the user cant access the login page again after 5++ failed attempts
+              if (user.failed_login_attempts > 5) {
+                // Redirect to forget-password page if failed_login_attempts is greater than 5
+                return done(null, false, {
+                    message: 'Too many failed login attempts. Redirecting to forget-password page.',
+                    redirect: '/users/forget-password',
+                });
             }
-          });
+
+            
+        }});
         } else {
           // No user
           return done(null, false, {

@@ -12,7 +12,13 @@
 <body>
   <div class="col-md-5 offset-md-3">
 		<div class="contain">
-			<h1>Reset Password</h1>
+			<h1>Reset Password</h1>  
+			<ul class="invalid-msg">
+				<% if(messages.success_msg) { %>
+				<li><%= messages.success_msg %></li>
+				<% } %>
+			</ul>
+
 			<form name="ResetPassword" action="/users/enter-PIN" method="POST">
 				<div class="form-group">
 					<label for="email">Enter the PIN sent to your email</label>
