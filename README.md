@@ -5,7 +5,7 @@ A fullstack web application for a local library. This will be used for providing
 
 ## Project Setup Prerequisites
 
-- npm [[installation]](https://docs.npmjs.com/cli/v10/commands/npm-install) <br>
+- npm [[installation](https://docs.npmjs.com/cli/v10/commands/npm-install)] <br>
 - .env [**IMPORTANT**: request from developers]
 
 ### Running locally
