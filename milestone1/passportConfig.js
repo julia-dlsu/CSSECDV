@@ -17,7 +17,6 @@ function initialize(passport) {
 
         if (results.rows.length > 0) {
           const user = results.rows[0];
-        
 
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
@@ -33,11 +32,7 @@ function initialize(passport) {
               //increment failed_login_attempts
               pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
               console.log('failed login attempt')
-              return done(null, false, { message: "Incorrect username or password." });
-              
-
-
-            
+              return done(null, false, { message: "Incorrect username or password." });            
         }});
         } else {
           // No user
