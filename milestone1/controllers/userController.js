@@ -38,6 +38,7 @@ const controller = {
         const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
         let { fname, lname, email, phone, uname, password, cpass } = req.body;
         const file = req.file;
+        let errors = [];
 
         // ======= FILE VALIDATION ======= //
         // size check
@@ -74,8 +75,6 @@ const controller = {
             Key: fileName, // becomes the file name
             ContentType: file.mimetype
         };
-
-        let errors = [];
 
         // check that there are no empty inputs
         if (!fname || !lname || !email || !phone || !uname || !password || !cpass ) {
