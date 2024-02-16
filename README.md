@@ -12,5 +12,6 @@ A fullstack web application for a local library. This will be used for providing
 
 - clone the repository into your local machine. <br>
 - pull a local copy of `milestone1-v2`. <br>
+- run: `npm init`. <br>
 - install needed dependencies. <br>
 - run: `npm run dev`.
