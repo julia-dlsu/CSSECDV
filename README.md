@@ -2,6 +2,11 @@
 
 A fullstack web application for a local library. This will be used for providing their customers information on what books are available, as well as to borrow and return books through the app. It also includes an admin portal where the book inventory and borrowing status can be tracked.
 <br>
+This project is more focused on implementing secure coding practices such as (but not limited to): <br>
+- implementing anti-bruteforce <br>
+- proper error handling <br>
+- input and file validation (magic numbers!) <br>
+- secure browser caches & cookies <br>
 
 ## Project Setup Prerequisites
 
