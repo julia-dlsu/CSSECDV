@@ -51,9 +51,7 @@ const AdminLoginLimiter = rateLimit({
 // ======= USERS: GET ======= //
 // render index
 router.get('/', (req, res)=>{
-    const sessionData = req.session
-    console.log("session data from '/ page")
-    console.log(sessionData)
+    console.log('H O M E   P A G E')
     res.render('index');
 });
 
@@ -65,8 +63,9 @@ router.get('/users/register', checkAuthenticated, (req, res)=>{
 // render login page
 router.get('/users/login', checkAuthenticated, (req, res)=>{
    // req.session.message = 'Hello, Flash!';
-   const sessionData = req.session
-   console.log(sessionData)
+   //const sessionData = req.session
+  // console.log(sessionData)
+  console.log('login page')
     res.render('login');
 });
 
@@ -79,6 +78,7 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     const command = new GetObjectCommand(getObjectParams);
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
+    console.log('R E A L   D A S H B O A R D')
     return res.render('dashboard', { user: req.user.username, userpic: url });
 });
 
@@ -90,7 +90,8 @@ router.get("/users/anotherpage", (req, res, next) => {
 // logout user
 //EDIT BC MAY ERROR
 router.get("/users/logout", (req, res, next) => {
-    // Destroy the session
+    // Destroy the session //THIS CAUSES AN ERROR
+    /*
     req.session.destroy((err) => {
         if (err) {
             console.error('Error destroying session:', err);
@@ -101,6 +102,10 @@ router.get("/users/logout", (req, res, next) => {
             if (err) { return next(err); }
             res.redirect("/");
         });
+    });*/
+    req.logout(function(err){ 
+        if (err) { return next(err); }
+        res.redirect("/");
     });
 });
 

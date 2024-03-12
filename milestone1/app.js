@@ -33,9 +33,16 @@ app.use(passport.session());
 
 app.use(flash());
 
-//i think the express-session error could come from here or sa logout req
+
+//edit this so that the timeout for logged out vs logged in users are different
 app.use((req, res, next) => {
   const session = req.session;
+
+  //Check if the session exists
+  if (!session) {
+    return next();
+  }
+
 
   // Check if the session exists and has a lastAccess timestamp
   if (session && session.lastAccess) {
