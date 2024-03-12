@@ -8,6 +8,8 @@ const bcrypt = require('bcrypt');
 const userController = require('../controllers/userController');
 const { pool } = require("../models/dbConfig");
 const { Router } = require('express');
+const session = require('express-session');
+const flash = require('express-flash');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -49,6 +51,9 @@ const AdminLoginLimiter = rateLimit({
 // ======= USERS: GET ======= //
 // render index
 router.get('/', (req, res)=>{
+    const sessionData = req.session
+    console.log("session data from '/ page")
+    console.log(sessionData)
     res.render('index');
 });
 
@@ -59,6 +64,9 @@ router.get('/users/register', checkAuthenticated, (req, res)=>{
 
 // render login page
 router.get('/users/login', checkAuthenticated, (req, res)=>{
+   // req.session.message = 'Hello, Flash!';
+   const sessionData = req.session
+   console.log(sessionData)
     res.render('login');
 });
 
@@ -74,12 +82,25 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     return res.render('dashboard', { user: req.user.username, userpic: url });
 });
 
+router.get("/users/anotherpage", (req, res, next) => {
+
+    res.render('anotherpage')
+});
 
 // logout user
+//EDIT BC MAY ERROR
 router.get("/users/logout", (req, res, next) => {
-    req.logout(function(err){
-        if (err) { return next(err); }
-        res.redirect("/");
+    // Destroy the session
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Error destroying session:', err);
+            return res.redirect("/");
+        }
+
+        req.logout(function(err){ //session support error is here
+            if (err) { return next(err); }
+            res.redirect("/");
+        });
     });
 });
 
@@ -120,6 +141,7 @@ router.post('/users/register', upload.single("image"), userController.registerUs
 
 router.post("/users/login", UserLoginLimiter,
     passport.authenticate("local", {
+
         successRedirect: "/users/dashboard",
         failureRedirect: "/users/login",
         failureFlash: true
@@ -145,7 +167,7 @@ router.post('/users/forget-password', async (req, res) => {
             console.log(pin)
 
             // Hash the pin before it gets stored in the database
-            const hashedPin = await bcrypt.hash(pin.toString(), 10);
+            const hashedPin = await bcrypt.hash(pin.toString(), 12);
 
             console.log(hashedPin);
 
