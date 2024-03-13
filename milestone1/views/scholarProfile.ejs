@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scholars</title>
     <!-- CSS only -->
-    <link rel="stylesheet" type="text/css" href="/css/admin.css"></style>
+    <link rel="stylesheet" type="text/css" href="/css/scholarProfile.css"></style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
     <script src="https://kit.fontawesome.com/897c51c62d.js" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -14,7 +14,6 @@
 </head>
 
 <body>
-
     <div class="bg">
 		<!-- Navbar -->
 		<nav class="navbar navbar-expand-lg navbar-dark shadow-5-strong bg-body-tertiary">
@@ -45,30 +44,48 @@
 			</div>
 		</nav>
 
-        <div class="container">
-            <h1 class="light-font">Registered Scholars</h1>
-        </div>
-
-        <div class="container"> 
-            <div id="favorites-container" class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-2">
-                <!-- scholars -->
-                <% for(var person of people) { %>
-                    <div class="col mb-1">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <!-- makes the card clickable -->
-                                <!-- [TODO] turn into /admin/scholars/:id -->
-                                <a href="/admin/scholars/profile"><h5 class="card-title"><%= person.scholar %></h5></a>
-                                <h6 class="card-subtitle text-muted"><%= person.type %></h6>
-                            </div>
-                            <div class="card-footer"> 
-                                <p class="card-text float-start univ"><%= person.school %></p>
-                            </div>
-                        </div>
+        <!-- page content: Item -->
+        <div class="container card-container">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2><%= scholar %></h2>
+                    <h6><%= email %></h6>
+                </div>
+                <div class="card-body">
+                    <img src='<%= userpic %>' />
+                    <h5 class="card-title"><%= type %></h5>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold">University:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= school %></p>
                     </div>
-                <% } %>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold">Degree:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= degree %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold">Landbank Account Name:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= accName %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold">Landbank Account Number:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= accNum %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold">Verified:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= verified %></p>
+                    </div>
+                </div>
+                
+                <!-- [TODO] turn into /admin/scholars/:id/verify -->
+                <div class="form-container">
+                    <form name = "Verify" action ="/admin/scholars/profile/verify"  method = "POST">
+                        <input type=text id="email" name = "email" value="<%= email %>" class="form-control" style="display: none">
+                        <input class = "form-control btn btn-success" type="submit" value ="Verify">
+                    </form>
+                </div>
             </div>
         </div>
+    </div>
 
     <!-- JavaScript Bundle with Popper -->
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>

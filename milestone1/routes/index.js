@@ -38,13 +38,13 @@ const UserLoginLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // limit each IP to 5 requests per windowMs
     message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
-  });
+});
 
 const AdminLoginLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
     max: 5, // limit each IP to 5 requests per windowMs
     message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
-  });
+});
 
 // ======= USERS: GET ======= //
 // render index
@@ -85,7 +85,7 @@ router.get("/users/logout", (req, res, next) => {
 
 router.get('/users/forget-password', (req, res) => {
     res.render('forget-password'); 
-  });
+});
 
 // ======= ADMIN: GET ======= //
 // render admin login page
@@ -105,8 +105,21 @@ router.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
     return res.render('bookAdmin', { user: req.user.username, userpic: url });
 });
 
-// render admin scholars
+// render admin dashboard
 router.get('/admin/scholars', checkNotAuthenticatedAdmin, async (req, res)=>{
+    // sample data only, replace when querying db
+    const people = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University' },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University' },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines' }
+    ]
+
+    return res.render('scholarAccs', { people });
+});
+
+// render admin scholars profile
+// [TODO] turn into /admin/scholars/:id
+router.get('/admin/scholars/profile', checkNotAuthenticatedAdmin, async (req, res)=>{
     const getObjectParams = {
         Bucket: bucketName,
         Key: req.user.profilepic, // file name
@@ -114,7 +127,38 @@ router.get('/admin/scholars', checkNotAuthenticatedAdmin, async (req, res)=>{
     const command = new GetObjectCommand(getObjectParams);
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
-    return res.render('bookAdmin', { user: req.user.username, userpic: url });
+    // sample data only, replace when querying db
+    const person = { 
+        userpic: url, 
+        scholar: 'Julia de Veyra', 
+        email: 'amorbdv@gmail.com', 
+        type: 'Merit Scholar', 
+        school: 'De La Salle University', 
+        degree: 'BS Computer Science', 
+        accName: 'Julianne Amor B de Veyra', 
+        accNum: '1234567890', 
+        verified: 'True' 
+    };
+
+    return res.render('scholarProfile', person);
+});
+
+// verify admin scholars profile
+// [TODO] turn into /admin/scholars/:id/verify AND functionalities
+router.post('/admin/scholars/profile/verify', checkNotAuthenticatedAdmin, async (req, res)=>{
+    return res.redirect('/admin/scholars');
+});
+
+// render admin applications of scholars
+router.get('/admin/renew-scholarship', checkNotAuthenticatedAdmin, async (req, res)=>{
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University' },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University' },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines' }
+    ]
+
+    return res.render('adminRenew', { applications });
 });
 
 // logout admin

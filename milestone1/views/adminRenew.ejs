@@ -52,17 +52,16 @@
         <div class="container"> 
             <div id="favorites-container" class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-2">
                 <!-- scholars -->
-                <% for(var person of people) { %>
+                <% for(var app of applications) { %>
                     <div class="col mb-1">
                         <div class="card h-100">
                             <div class="card-body">
                                 <!-- makes the card clickable -->
-                                <!-- [TODO] turn into /admin/scholars/:id -->
-                                <a href="/admin/scholars/profile"><h5 class="card-title"><%= person.scholar %></h5></a>
-                                <h6 class="card-subtitle text-muted"><%= person.type %></h6>
+                                <a href="/admin/scholars/profile"><h5 class="card-title"><%= app.scholar %></h5></a>
+                                <h6 class="card-subtitle text-muted"><%= app.date %></h6>
                             </div>
                             <div class="card-footer"> 
-                                <p class="card-text float-start univ"><%= person.school %></p>
+                                <p class="card-text float-start univ"><%= app.url %></p>
                             </div>
                         </div>
                     </div>
