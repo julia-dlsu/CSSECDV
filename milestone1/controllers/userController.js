@@ -145,7 +145,7 @@ const controller = {
                     `SELECT * FROM users
                     WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
 
-                        console.log(results.rows);
+                      //  console.log(results.rows);
         
                         if (results.rows.length > 0){
                             if (results.rows[0].email === email){

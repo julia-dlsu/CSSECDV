@@ -48,16 +48,24 @@ const AdminLoginLimiter = rateLimit({
     message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
   });
 
+
 // ======= USERS: GET ======= //
 // render index
 router.get('/', (req, res)=>{
+   // console.log('Session ID:', sessionId);
     console.log('H O M E   P A G E')
     res.render('index');
 });
 
 // render register page
 router.get('/users/register', checkAuthenticated, (req, res)=>{
-    res.render('register');
+    if(!req.session)
+    {
+        res.redirect("/");
+    }
+    else{
+        res.render('register')
+    }
 });
 
 // render login page
@@ -65,12 +73,22 @@ router.get('/users/login', checkAuthenticated, (req, res)=>{
    // req.session.message = 'Hello, Flash!';
    //const sessionData = req.session
   // console.log(sessionData)
-  console.log('login page')
+ // console.log('login page')
+ if(!req.session){
+    res.redirect("/");
+ }
+ else{
     res.render('login');
+ }
+  
 });
 
 // render dashboard
 router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
+    if(!req.session){
+        res.redirect("/");
+    }
+
     const getObjectParams = {
         Bucket: bucketName,
         Key: req.user.profilepic, // file name
@@ -78,31 +96,31 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     const command = new GetObjectCommand(getObjectParams);
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
-    console.log('R E A L   D A S H B O A R D')
+    console.log(' R E A L   D A S H B O A R D')
+ //   sessionId = req.session.id
+ //   console.log('Session ID:', sessionId);
+    
+    
     return res.render('dashboard', { user: req.user.username, userpic: url });
+    
+   
+
 });
 
-router.get("/users/anotherpage", (req, res, next) => {
-
-    res.render('anotherpage')
+router.get("/users/anotherpage", (req, res) => {
+    console.log("ANOTHER PAGE")
+    if(!req.session){
+        res.redirect("/");
+    }
+    else
+    {
+        res.render('anotherpage')
+    }
+ 
 });
 
 // logout user
-//EDIT BC MAY ERROR
 router.get("/users/logout", (req, res, next) => {
-    // Destroy the session //THIS CAUSES AN ERROR
-    /*
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Error destroying session:', err);
-            return res.redirect("/");
-        }
-
-        req.logout(function(err){ //session support error is here
-            if (err) { return next(err); }
-            res.redirect("/");
-        });
-    });*/
     req.logout(function(err){ 
         if (err) { return next(err); }
         res.redirect("/");
@@ -110,17 +128,26 @@ router.get("/users/logout", (req, res, next) => {
 });
 
 router.get('/users/forget-password', (req, res) => {
+    if(!req.session){
+        res.redirect("/");
+    }
     res.render('forget-password'); 
   });
 
 // ======= ADMIN: GET ======= //
 // render admin login page
 router.get('/admin/login', checkAuthenticated, (req, res)=>{
+    if(!req.session){
+        res.redirect("/");
+    }
     res.render('adminLogin');
 });
 
 // render admin dashboard
 router.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
+    if(!req.session){
+        res.redirect("/");
+    }
     const getObjectParams = {
         Bucket: bucketName,
         Key: req.user.profilepic, // file name
@@ -141,6 +168,20 @@ router.get("/admin/logout", (req, res, next) => {
 
 
 // ======= USERS: POST ======= //
+router.post('/anotherpage', (req, res) => {
+    if (req.session) {
+        req.session.lastActivity = new Date().getTime();
+    }
+    console.log("POST anotherpage")
+    //res.sendStatus(200);
+})
+router.post('/users/dashboard', (req, res) => {
+    if (req.session) {
+        req.session.lastActivity = new Date().getTime();
+    }
+    console.log("POST dashboard")
+    //res.sendStatus(200);
+})
 // register user
 router.post('/users/register', upload.single("image"), userController.registerUser)
 

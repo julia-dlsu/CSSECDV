@@ -11,6 +11,8 @@
 <body>
   <a href="/users/logout" class="btn btn-primary" role="button">Logout</a>
   <a href="/users/dashboard" class="btn btn-primary" role="button">another page</a>
+  <button id="showTextButton">ANOTHER TEST BUTTON</button>
+  <p id="displayText" style="display: none;">This is the text that will be shown when the button is clicked.</p>
 
   <ul class="invalid-msg">
     <% if(messages.timeout_msg) { %>
@@ -20,7 +22,24 @@
  
   <h1>Hello</h1>
  
+  <script>
+        // JavaScript to handle button click event
+    // Add event listener for button clicks
+    document.addEventListener('click', function() {
+        // Send request to server to update last activity timestamp
+        fetch('/anotherpage', {
+            method: 'POST'
+        });
+    });
 
+        // Add event listener for button clicks
+      document.getElementById('showTextButton').addEventListener('click', function() {
+      // Display the hidden text
+      document.getElementById('displayText').style.display = 'block';
+    });
+
+
+   </script>
 </body>
 
 </html>
