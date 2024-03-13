@@ -105,6 +105,18 @@ router.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
     return res.render('bookAdmin', { user: req.user.username, userpic: url });
 });
 
+// render admin scholars
+router.get('/admin/scholars', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getObjectParams = {
+        Bucket: bucketName,
+        Key: req.user.profilepic, // file name
+    }
+    const command = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+    return res.render('bookAdmin', { user: req.user.username, userpic: url });
+});
+
 // logout admin
 router.get("/admin/logout", (req, res, next) => {
     req.logout(function(err){
