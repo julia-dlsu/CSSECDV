@@ -1,4 +1,4 @@
-h1 {
+h2 {
 	text-align: center;
 }
 
@@ -38,11 +38,23 @@ h1 {
 .contain {
 	border: 1px solid #DFE0EB;
 	box-sizing: border-box;
-	min-width: 90%;
+	width: 100% !important;
+	/* min-width: 90%; */
 	border-radius: 5px;
 	background: #FFFFFF;
-	margin: 10%;
+	/* margin: 10%; */
 	padding: 3%
+}
+
+.form-container {
+	min-width: 50% !important;
+	border: 1px solid #DFE0EB;
+	border-radius: 5px;
+	padding: 3%
+}
+
+label {
+	color: whitesmoke !important;
 }
 
 input:invalid {
@@ -58,4 +70,45 @@ input:valid{
 input:placeholder-shown {
 	background:white;
 	border-color: gray;
+}
+
+.bg {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.9),
+    rgba(0, 0, 0, 0.5)), url('https://img.freepik.com/free-photo/smart-attractive-positive-asian-business-male-wearing-glasses-work-remote-new-normal-lifestyle-hand-use-laptop-tele-conference-onlive-videocall-meeting-remote-business-ideas-concept_609648-804.jpg?t=st=1710253432~exp=1710257032~hmac=39a34a2335791f884575303375c1f7fdd4c95eb05ffae58e378383c86fab7742&w=1380');
+    height: 100vh;
+    position: relative;
+    background-position: center;
+    background-repeat: none;
+    background-size: cover;
+}
+
+.navbar {
+    /* opacity: 0% !important; */
+    padding-left: 2% !important;
+    padding-right: 2% !important;
+    padding-top: 1% !important;
+    padding-bottom: 1% !important;
+}
+
+.social {
+    padding: 8px;
+}
+
+.light-font {
+    color: whitesmoke !important;
+}
+
+.dark-font {
+	color: #0000008C !important;
+}
+
+.thick {
+    font-weight: bold;
+}
+
+.main-body {
+    padding-bottom: 10% !important;
+    padding-left: 0% !important;
+    padding-right: 0% !important;
+	width: 50% !important;
 }
