@@ -59,6 +59,7 @@ app.use((req, res, next) => {
     return next();
   }
   console.log(session)
+/*  //CODE BELOW IS FOR LIFETIME TIMEOUT
 
   // Check if the session exists and has a lastAccess timestamp
   if (session && session.lastAccess) {
@@ -67,15 +68,12 @@ app.use((req, res, next) => {
     const now = new Date().getTime();
     const elapsedTime = now - session.lastAccess;
  //   console.log(now) //unix epoch
-   // console.log("elapsed time in milliseconds: ", elapsedTime)
+    console.log("elapsed time in milliseconds: ", elapsedTime)
 
     //for lifetime timeouts
-    const sessionTimeout = 45 * 60 * 1000;
+    const sessionTimeout = 3 * 60 * 1000;
 
-
-    //CODE BELOW IS FOR LIFETIME TIMEOUT
-    //i think this is okay
-    //EDIT: fix how the flash messages work
+    //EDIT/NOTE: fix how the flash messages work
     if (elapsedTime >= sessionTimeout - 60000)
     {
       console.log('one minute left')
@@ -92,27 +90,30 @@ app.use((req, res, next) => {
           console.error('Error destroying session:', err);
         } else {
           // NEED TO EDIT: Delete session record from the database
-         /* req.sessionStore.destroy(req.sessionID, (destroyErr) => {
+          req.sessionStore.destroy(req.sessionID, (destroyErr) => {
             if (destroyErr) {
               console.error('Error deleting session record:', destroyErr);
             }
-          });*/
+          });
           sidToDelete = req.sessionID;
-          deleteQuery = 'SELECT FROM session WHERE sid = $1'
+          deleteQuery = 'DELETE FROM session WHERE sid = $1'
           pool.query(deleteQuery, [sidToDelete], (deleteErr, deleteResult) => {
             if (deleteErr) {
               console.error('Error deleting session record:', deleteErr);
             } else {
               console.log('Session record deleted successfully');
+              res.redirect("/")
             }
+            
           });
           
         }
+        
       });
       
     }
     
-  }
+  }*/
 
   //FOR IDLE TIMEOUT (needs testing)
   //note: may delay during the session timeout (it's not like aninmosys that kicks you out when you click on smth after the timer is up)
@@ -121,53 +122,68 @@ app.use((req, res, next) => {
    
     //for idle timeout
     const currentTime = new Date().getTime();
-    const idleTimeout = 4 * 60 * 1000;
+    const idleTimeout = 2 * 60 * 1000;
 
     console.log('last activity: ', req.session.lastActivity)
     idleTime = currentTime - req.session.lastActivity
-    //console.log('idle time: ', idleTime)
+    console.log('idle time: ', idleTime)
     //console.log('currentTime: ', currentTime)
 
     if (currentTime - req.session.lastActivity > idleTimeout) { 
       // Session has timed out due to inactivity, destroy it
-      console.log("I D L E   T I M E O U T")
+      
       req.session.destroy((err) => {
         if (err) {
           console.error('Error destroying session:', err);
         } else {
-          // NEED TO EDIT: Delete session record from the database
          /* req.sessionStore.destroy(req.sessionID, (destroyErr) => {
             if (destroyErr) {
               console.error('Error deleting session record:', destroyErr);
             }
           });*/
+          console.log("I D L E   T I M E O U T")
           sidToDelete = req.sessionID;
-          deleteQuery = 'SELECT FROM session WHERE sid = $1'
+          //not sure if DELETE or SELECT
+          deleteQuery = 'DELETE FROM session WHERE sid = $1'
           pool.query(deleteQuery, [sidToDelete], (deleteErr, deleteResult) => {
             if (deleteErr) {
               console.error('Error deleting session record:', deleteErr);
             } else {
-              console.log('Session record deleted successfully');
+              console.log('Session record deleted successfully');  
+              res.redirect("/")  //wont redirect agad       
             }
+          //  res.redirect("/") //getting Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
           });
           
         }
       });
-      res.redirect("/")
+      return;
      
     }
 
   }
     // Update last activity timestamp if the session still exists
-  if(req.session)
+    //maybe edit this??,, okay editing this out makes the idle timeout useless (i think)
+ /* if(req.session)
   {
     req.session.lastActivity = new Date().getTime(); //may error here during idle timeout 
-  }
+    console.log('last activity 2: ', req.session.lastActivity) //1 milliseconde difference from the post req lastActivity
+    
+  }*/
 
   if(!session.lastAccess){
     session.lastAccess = new Date().getTime();
   }
   
+  next();
+});
+
+// Middleware to handle updating session activity
+app.use('/update-session-activity', (req, res, next) => {
+  if (req.session) {
+    req.session.lastActivity = new Date().getTime();
+    console.log('last activity 3: ', req.session.lastActivity)
+  }
   next();
 });
 

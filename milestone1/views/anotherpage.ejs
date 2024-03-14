@@ -23,19 +23,38 @@
   <h1>Hello</h1>
  
   <script>
-        // JavaScript to handle button click event
-    // Add event listener for button clicks
     document.addEventListener('click', function() {
-        // Send request to server to update last activity timestamp
-        fetch('/anotherpage', {
-            method: 'POST'
-        });
-    });
-
+        // Send request to server to update session's last activity timestamp
+        fetch('/update-session-activity')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to update session activity');
+            }
+          })
+          .catch(error => {
+            console.error('Error updating session activity:', error);
+          });
+      });
         // Add event listener for button clicks
       document.getElementById('showTextButton').addEventListener('click', function() {
       // Display the hidden text
-      document.getElementById('displayText').style.display = 'block';
+          var displayText = document.getElementById('displayText');
+        
+        // Toggle the display of the hidden text
+        if (displayText.style.display === 'none') {
+            displayText.style.display = 'block';
+        } else {
+            displayText.style.display = 'none';
+        }
+        fetch('/update-session-activity')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to update session activity');
+            }
+          })
+          .catch(error => {
+            console.error('Error updating session activity:', error);
+          });
     });
 
 

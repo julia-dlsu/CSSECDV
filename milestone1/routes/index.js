@@ -33,6 +33,7 @@ const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 
 const initializePassport = require('../passportConfig');
+const e = require('express');
 initializePassport(passport);
 
 //separate loginlimiters for user and admin
@@ -59,35 +60,29 @@ router.get('/', (req, res)=>{
 
 // render register page
 router.get('/users/register', checkAuthenticated, (req, res)=>{
-    if(!req.session)
-    {
-        res.redirect("/");
-    }
-    else{
+
         res.render('register')
-    }
+    
 });
 
 // render login page
 router.get('/users/login', checkAuthenticated, (req, res)=>{
-   // req.session.message = 'Hello, Flash!';
-   //const sessionData = req.session
-  // console.log(sessionData)
- // console.log('login page')
- if(!req.session){
+
+ /*if(!req.session){
     res.redirect("/");
  }
  else{
     res.render('login');
- }
+ }**/
+ res.render('login');
   
 });
 
 // render dashboard
 router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
-    if(!req.session){
+  /*  if(!req.session){
         res.redirect("/");
-    }
+    }*/
 
     const getObjectParams = {
         Bucket: bucketName,
@@ -102,9 +97,6 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     
     
     return res.render('dashboard', { user: req.user.username, userpic: url });
-    
-   
-
 });
 
 router.get("/users/anotherpage", (req, res) => {
@@ -128,26 +120,28 @@ router.get("/users/logout", (req, res, next) => {
 });
 
 router.get('/users/forget-password', (req, res) => {
-    if(!req.session){
+   /* if(!req.session){
         res.redirect("/");
-    }
+    }*/
     res.render('forget-password'); 
   });
 
 // ======= ADMIN: GET ======= //
 // render admin login page
 router.get('/admin/login', checkAuthenticated, (req, res)=>{
-    if(!req.session){
+ /*   if(!req.session){
         res.redirect("/");
-    }
+    }*/
     res.render('adminLogin');
+    
 });
 
 // render admin dashboard
 router.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
-    if(!req.session){
+ /*    if(!req.session){
         res.redirect("/");
     }
+    */
     const getObjectParams = {
         Bucket: bucketName,
         Key: req.user.profilepic, // file name
@@ -168,20 +162,25 @@ router.get("/admin/logout", (req, res, next) => {
 
 
 // ======= USERS: POST ======= //
+/*
 router.post('/anotherpage', (req, res) => {
-    if (req.session) {
+   if (req.session) {
         req.session.lastActivity = new Date().getTime();
-    }
-    console.log("POST anotherpage")
+        console.log('another page last activity: ',req.session.lastActivity)
+    }//maybe add a redirect to "/" when the session is deleted?? basi may error tho
+   //next();
+    console.log("POST req anotherpage")
     //res.sendStatus(200);
 })
 router.post('/users/dashboard', (req, res) => {
-    if (req.session) {
+     if (req.session) {
         req.session.lastActivity = new Date().getTime();
+        console.log('dashboard last activity: ',req.session.lastActivity)
     }
-    console.log("POST dashboard")
+  //  next();
+    console.log("POST req dashboard")
     //res.sendStatus(200);
-})
+})*/
 // register user
 router.post('/users/register', upload.single("image"), userController.registerUser)
 
