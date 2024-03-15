@@ -16,44 +16,10 @@
 <body>
     <div class="bg">
 		  <!-- Navbar -->
-		  <%- include('partials/adminNavbar') %>
+		  <%- include('partials/userNavbar') %>
 
       <div class="container container-margin">
         <h1 class="light-font">Announcements</h1>
-        <h5 class="light-font"><%= user %></h5>
-      </div>
-
-      <div class="container container-margin">
-        <!-- Create an Announcement -->
-        <!-- Button trigger modal -->
-        <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#exampleModal">
-          Create Announcement
-        </button>
-      </div>
-
-      <!-- Modal -->
-      <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5" id="exampleModalLabel">Create an Announcement</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <!-- Form to create an announcement -->
-            <form name="create-announcement" action ="/admin/create-announcement" method = "POST">
-              <div class="modal-body">
-							  <input type=text id="title" name="title" class="form-control" maxlength= "64" placeholder= "Title" required>
-                <textarea type=text id="announcement" name="announcement" class="form-control" cols="30" rows="10"></textarea>
-                <div id="announcementHelpInline" class="form-text">
-                  Maximum of 500 characters.
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Submit</button>
-              </div>
-            </form>
-          </div>
-        </div>
       </div>
 
       <div class="container ">

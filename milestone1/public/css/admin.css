@@ -102,3 +102,19 @@ img {
 .container-margin {
     margin-bottom: 1.0rem;
 }
+
+.Rejected {
+    color: red;
+}
+
+.Approved {
+    color: green;
+}
+
+.Pending {
+    color: orange;
+}
+
+.remove {
+    padding: 0rem !important;
+}

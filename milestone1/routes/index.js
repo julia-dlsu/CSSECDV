@@ -264,6 +264,149 @@ router.post("/users/reset-password", async (req, res) => {
 });
 
 
+// ======= USERS: RENEW SCHOLARSHIP ROUTES ======= //
+
+// render renewal applications
+router.get('/users/renew-scholarship', checkNotAuthenticatedUser, async (req, res)=>{
+    const getEAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const eaf_command = new GetObjectCommand(getEAFParams);
+    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+
+    const getGradesParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const grades_command = new GetObjectCommand(getGradesParams);
+    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    // id here is for application NOT user
+    const applications = [
+        { id: 1, eaf: eaf_url, grades: grades_url, date: '03/03/2024', status: 'Approved' },
+        { id: 2, eaf: eaf_url, grades: grades_url, date: '03/04/2024', status: 'Rejected' },
+        { id: 3, eaf: eaf_url, grades: grades_url, date: '03/05/2024', status: 'Pending' }
+    ]
+
+    return res.render('userRenew', { applications });
+});
+
+// delete renewal
+router.post('/users/renew-scholarship-delete', checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/users/renew-scholarship');
+});
+
+// apply for renewal
+router.post('/users/renew-scholarship-apply', upload.fields([{ name: "eaf" }, { name: "grades" }]), checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.files);
+    return res.redirect('/users/renew-scholarship');
+});
+
+
+// ======= USERS: TRAVEL ABROAD ROUTES ======= //
+
+// render renewal applications
+router.get('/users/travel-abroad', checkNotAuthenticatedUser, async (req, res)=>{
+    const getLOIParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const loi_command = new GetObjectCommand(getLOIParams);
+    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
+
+    const getDOUParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const dou_command = new GetObjectCommand(getDOUParams);
+    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
+
+    const getITRParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const itr_command = new GetObjectCommand(getITRParams);
+    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
+
+    const getApproveParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const approve_command = new GetObjectCommand(getApproveParams);
+    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    // id here is for application NOT user
+    const applications = [
+        { id: 1, loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url, date: '03/03/2024', status: 'Approved' },
+        { id: 2, loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url, date: '03/04/2024', status: 'Rejected' },
+        { id: 3, loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url, date: '03/05/2024', status: 'Pending' }
+    ]
+
+    return res.render('userTravel', { applications });
+});
+
+// delete renewal
+router.post('/users/travel-abroad-delete', checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/users/travel-abroad');
+});
+
+// apply for renewal
+router.post('/users/travel-abroad-apply', upload.fields([{ name: "loi" }, { name: "dou" }, { name: "itr" }]), checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.files);
+    return res.redirect('/users/travel-abroad');
+});
+
+
+// ======= USERS: THESIS BUDGET ROUTES ======= //
+
+// render renewal applications
+router.get('/users/thesis-budget', checkNotAuthenticatedUser, async (req, res)=>{
+    const getAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const af_command = new GetObjectCommand(getAFParams);
+    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
+
+    const getApproveParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const approve_command = new GetObjectCommand(getApproveParams);
+    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    // id here is for application NOT user
+    const applications = [
+        { id: 1, af: af_url, approved: approve_url, date: '03/03/2024', status: 'Approved' },
+        { id: 2, af: af_url, approved: approve_url, date: '03/04/2024', status: 'Rejected' },
+        { id: 3, af: af_url, approved: approve_url, date: '03/05/2024', status: 'Pending' }
+    ]
+
+    return res.render('userThesis', { applications });
+});
+
+// delete renewal
+router.post('/users/thesis-budget-delete', checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/users/thesis-budget');
+});
+
+// apply for renewal
+router.post('/users/thesis-budget-apply', upload.single("af"), checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.file);
+    return res.redirect('/users/thesis-budget');
+});
+
+
 // ======= ADMIN: USER ROUTES ======= //
 
 // render admin login page
