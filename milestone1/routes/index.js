@@ -81,6 +81,45 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     return res.render('userDashboard', { posts });
 });
 
+// render admin scholars profile
+router.get('/users/profile', checkNotAuthenticatedUser, async (req, res)=>{
+    const getObjectParams = {
+        Bucket: bucketName,
+        Key: req.user.profilepic, // file name
+    }
+    const command = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const person = { 
+        userpic: url, 
+        scholar: 'Julia de Veyra', 
+        email: 'amorbdv@gmail.com', 
+        phone: '09985731197', 
+        type: 'Merit Scholar', 
+        school: 'De La Salle University', 
+        degree: 'BS Computer Science', 
+        accName: 'Julianne Amor B de Veyra', 
+        accNum: '1234567890', 
+        verified: 'True' 
+    };
+
+    return res.render('userProfile', person);
+});
+
+// update profile pic
+router.post('/users/update-profile-picture', upload.single("image"), checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.file);
+    return res.redirect('/users/profile');
+});
+
+// update profile information
+router.post('/users/update-profile-information', checkNotAuthenticatedUser, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/users/profile');
+});
+
 // logout user
 router.get("/users/logout", (req, res, next) => {
     req.logout(function(err){
