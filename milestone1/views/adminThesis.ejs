@@ -17,57 +17,7 @@
 
     <div class="bg">
 		<!-- Navbar -->
-		<nav class="navbar navbar-expand-lg navbar-dark shadow-5-strong bg-body-tertiary">
-			<div class="container-fluid">
-				<a class="navbar-brand thick light-font" href="/">DOST-SEI</a>
-			  	<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-				<span class="navbar-toggler-icon"></span>
-			  	</button>
-			  	<div class="collapse navbar-collapse" id="navbarSupportedContent">
-					<ul class="navbar-nav me-auto mb-2 mb-lg-0">
-				  		<li class="nav-item">
-							<a class="nav-link light-font" href="/admin/dashboard">Home</a>
-				  		</li>
-                        <li class="nav-item">
-							<a class="nav-link light-font" href="/admin/scholars">Scholars</a>
-				  		</li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Scholarship Renewal</a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="/admin/renew-scholarship">Pending</a></li>
-                                <li><a class="dropdown-item" href="/admin/renew-scholarship/approved">Approved</a></li>
-                                <li><a class="dropdown-item" href="/admin/renew-scholarship/rejected">Rejected</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Travel Abroad</a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="/admin/travel-abroad">Pending</a></li>
-                                <li><a class="dropdown-item" href="/admin/travel-abroad/approved">Approved</a></li>
-                                <li><a class="dropdown-item" href="/admin/travel-abroad/rejected">Rejected</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Thesis Budget</a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="/admin/travel-budget">Pending</a></li>
-                                <li><a class="dropdown-item" href="/admin/travel-budget/approved">Approved</a></li>
-                                <li><a class="dropdown-item" href="/admin/travel-budget/rejected">Rejected</a></li>
-                            </ul>
-                        </li>
-				  		<li class="nav-item">
-							<a class="nav-link light-font" href="/admin/logout">Logout</a>
-				  		</li>
-					</ul>
-					<div class="d-flex">
-				  		<ul class="navbar-nav me-auto mb-2 mb-lg-0">
-							<a href="https://www.facebook.com/DOST.SEI" target="_blank" class="social light-font"><i class="fa-brands fa-facebook-f"></i></a>
-							<a href="https://www.science-scholarships.ph" target="_blank" class="social light-font"><i class="fa-solid fa-earth-americas"></i></a>
-				  		</ul>
-					</div>
-			  	</div>
-			</div>
-		</nav>
+		<%- include('partials/adminNavbar') %>
 
         <div class="container">
             <h1 class="light-font">Thesis Budget Applications</h1>
