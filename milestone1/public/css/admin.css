@@ -98,3 +98,7 @@ img {
 	color: red;
 	font-size: 90%;
 }
+
+.container-margin {
+    margin-bottom: 1.0rem;
+}
