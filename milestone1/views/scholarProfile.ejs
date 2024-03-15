@@ -28,8 +28,32 @@
 							<a class="nav-link light-font" href="/admin/dashboard">Home</a>
 				  		</li>
                         <li class="nav-item">
-							<a class="nav-link light-font" href="/admin/renew-scholarship">Scholarship Renewal</a>
+							<a class="nav-link light-font" href="/admin/scholars">Scholars</a>
 				  		</li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Scholarship Renewal</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/admin/renew-scholarship">Pending</a></li>
+                                <li><a class="dropdown-item" href="/admin/renew-scholarship/approved">Approved</a></li>
+                                <li><a class="dropdown-item" href="/admin/renew-scholarship/rejected">Rejected</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Travel Abroad</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/admin/travel-abroad">Pending</a></li>
+                                <li><a class="dropdown-item" href="/admin/travel-abroad/approved">Approved</a></li>
+                                <li><a class="dropdown-item" href="/admin/travel-abroad/rejected">Rejected</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">Thesis Budget</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="/admin/travel-budget">Pending</a></li>
+                                <li><a class="dropdown-item" href="/admin/travel-budget/approved">Approved</a></li>
+                                <li><a class="dropdown-item" href="/admin/travel-budget/rejected">Rejected</a></li>
+                            </ul>
+                        </li>
 				  		<li class="nav-item">
 							<a class="nav-link light-font" href="/admin/logout">Logout</a>
 				  		</li>
@@ -45,7 +69,7 @@
 		</nav>
 
         <!-- page content: Item -->
-        <div class="container card-container">
+        <div class="container card-container d-flex align-items-center justify-content-center">
             <div class="card shadow">
                 <div class="card-header">
                     <h2><%= scholar %></h2>
@@ -55,33 +79,33 @@
                     <img src='<%= userpic %>' />
                     <h5 class="card-title"><%= type %></h5>
                     <div class="d-flex flex-row">
-                        <p class="fw-semibold">University:&nbsp;&nbsp;</p>
+                        <p class="fw-semibold card-title">University:&nbsp;&nbsp;</p>
                         <p class="card-title"><%= school %></p>
                     </div>
                     <div class="d-flex flex-row">
-                        <p class="fw-semibold">Degree:&nbsp;&nbsp;</p>
+                        <p class="fw-semibold card-title">Degree:&nbsp;&nbsp;</p>
                         <p class="card-title"><%= degree %></p>
                     </div>
                     <div class="d-flex flex-row">
-                        <p class="fw-semibold">Landbank Account Name:&nbsp;&nbsp;</p>
+                        <p class="fw-semibold card-title">Landbank Account Name:&nbsp;&nbsp;</p>
                         <p class="card-title"><%= accName %></p>
                     </div>
                     <div class="d-flex flex-row">
-                        <p class="fw-semibold">Landbank Account Number:&nbsp;&nbsp;</p>
+                        <p class="fw-semibold card-title">Landbank Account Number:&nbsp;&nbsp;</p>
                         <p class="card-title"><%= accNum %></p>
                     </div>
                     <div class="d-flex flex-row">
-                        <p class="fw-semibold">Verified:&nbsp;&nbsp;</p>
+                        <p class="fw-semibold card-title">Verified:&nbsp;&nbsp;</p>
                         <p class="card-title"><%= verified %></p>
                     </div>
-                </div>
-                
-                <!-- [TODO] turn into /admin/scholars/:id/verify -->
-                <div class="form-container">
-                    <form name = "Verify" action ="/admin/scholars/profile/verify"  method = "POST">
-                        <input type=text id="email" name = "email" value="<%= email %>" class="form-control" style="display: none">
-                        <input class = "form-control btn btn-success" type="submit" value ="Verify">
-                    </form>
+
+                    <!-- [TODO] turn into /admin/scholars/:id/verify -->
+                    <div class="form-container">
+                        <form name = "Verify" action ="/admin/scholars/profile/verify"  method = "POST">
+                            <input type=text id="email" name = "email" value="<%= email %>" class="form-control" style="display: none">
+                            <input class = "form-control btn btn-success" type="submit" value ="Verify">
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

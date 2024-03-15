@@ -8,6 +8,7 @@ const bcrypt = require('bcrypt');
 const userController = require('../controllers/userController');
 const { pool } = require("../models/dbConfig");
 const { Router } = require('express');
+const express = require('express')
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -26,6 +27,13 @@ const s3 =  new S3Client({
         secretAccessKey
     }
 });
+
+// MIDDLESWARES: configuration for handling API endpoint data
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
 
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
@@ -46,7 +54,7 @@ const AdminLoginLimiter = rateLimit({
     message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
 });
 
-// ======= USERS: GET ======= //
+// ======= SCHOLARS: USER ROUTES ======= //
 // render index
 router.get('/', (req, res)=>{
     res.render('index');
@@ -74,7 +82,6 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
     return res.render('dashboard', { user: req.user.username, userpic: url });
 });
 
-
 // logout user
 router.get("/users/logout", (req, res, next) => {
     req.logout(function(err){
@@ -87,7 +94,8 @@ router.get('/users/forget-password', (req, res) => {
     res.render('forget-password'); 
 });
 
-// ======= ADMIN: GET ======= //
+
+// ======= ADMIN: USER ROUTES ======= //
 // render admin login page
 router.get('/admin/login', checkAuthenticated, (req, res)=>{
     res.render('adminLogin');
@@ -116,6 +124,8 @@ router.get('/admin/scholars', checkNotAuthenticatedAdmin, async (req, res)=>{
 
     return res.render('scholarAccs', { people });
 });
+
+// ======= ADMIN: SCHOLAR ROUTES ======= //
 
 // render admin scholars profile
 // [TODO] turn into /admin/scholars/:id
@@ -146,19 +156,8 @@ router.get('/admin/scholars/profile', checkNotAuthenticatedAdmin, async (req, re
 // verify admin scholars profile
 // [TODO] turn into /admin/scholars/:id/verify AND functionalities
 router.post('/admin/scholars/profile/verify', checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
     return res.redirect('/admin/scholars');
-});
-
-// render admin applications of scholars
-router.get('/admin/renew-scholarship', checkNotAuthenticatedAdmin, async (req, res)=>{
-    // sample data only, replace when querying db
-    const applications = [
-        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University' },
-        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University' },
-        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines' }
-    ]
-
-    return res.render('adminRenew', { applications });
 });
 
 // logout admin
@@ -167,6 +166,310 @@ router.get("/admin/logout", (req, res, next) => {
         if (err) { return next(err); }
         res.redirect("/");
     });
+});
+
+
+// ======= ADMIN: RENEW SCHOLARSHIP ROUTES ======= //
+
+// render admin applications of scholars
+router.get('/admin/renew-scholarship', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getEAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const eaf_command = new GetObjectCommand(getEAFParams);
+    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+
+    const getGradesParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const grades_command = new GetObjectCommand(getGradesParams);
+    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    // id here is application id NOT user id
+    const applications = [
+        { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', eaf: eaf_url, grades: grades_url, date: '03/03/2024' },
+        { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', eaf: eaf_url, grades: grades_url, date: '03/03/2024' },
+        { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', eaf: eaf_url, grades: grades_url, date: '03/03/2024' }
+    ]
+
+    return res.render('adminRenew', { applications });
+});
+
+// approve scholarship renewal application
+router.post('/admin/renew-scholarship-approve', upload.single("loe"), checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.file);
+    return res.redirect('/admin/renew-scholarship/approved');
+});
+
+// reject scholarship renewal application
+router.post('/admin/renew-scholarship-reject', checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/admin/renew-scholarship/rejected');
+});
+
+// render approved scholarship renewals
+router.get('/admin/renew-scholarship/approved', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getEAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const eaf_command = new GetObjectCommand(getEAFParams);
+    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+
+    const getGradesParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const grades_command = new GetObjectCommand(getGradesParams);
+    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+
+    const getApproveParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const approve_command = new GetObjectCommand(getApproveParams);
+    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', eaf: eaf_url, grades: grades_url, approved: approve_url },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', eaf: eaf_url, grades: grades_url, approved: approve_url },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', eaf: eaf_url, grades: grades_url, approved: approve_url }
+    ]
+
+    return res.render('approvedRenewals', { applications });
+});
+
+// render rejected scholarship renewals
+router.get('/admin/renew-scholarship/rejected', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getEAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const eaf_command = new GetObjectCommand(getEAFParams);
+    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+
+    const getGradesParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const grades_command = new GetObjectCommand(getGradesParams);
+    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', eaf: eaf_url, grades: grades_url },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', eaf: eaf_url, grades: grades_url },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', eaf: eaf_url, grades: grades_url }
+    ]
+
+    return res.render('rejectedRenewals', { applications });
+});
+
+// ======= ADMIN: TRAVEL ABROAD ROUTES ======= //
+
+// render admin applications of travel abroad
+router.get('/admin/travel-abroad', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getLOIParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const loi_command = new GetObjectCommand(getLOIParams);
+    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
+
+    const getDOUParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const dou_command = new GetObjectCommand(getDOUParams);
+    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
+
+    const getITRParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const itr_command = new GetObjectCommand(getITRParams);
+    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    // id here is application id NOT user id
+    const applications = [
+        { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', loi: loi_url, dou: dou_url, itr: itr_url, date: '03/03/2024' },
+        { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University',  loi: loi_url, dou: dou_url, itr: itr_url,  date: '03/03/2024' },
+        { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', loi: loi_url, dou: dou_url, itr: itr_url,  date: '03/03/2024' }
+    ]
+
+    return res.render('adminTravel', { applications });
+});
+
+// approve travel abroad application
+router.post('/admin/travel-abroad-approve', upload.single("permit"), checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.file);
+    return res.redirect('/admin/travel-abroad/approved');
+});
+
+// reject travel abroad application
+router.post('/admin/travel-abroad-reject', checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/admin/travel-abroad/rejected');
+});
+
+// render approved travel abroad
+router.get('/admin/travel-abroad/approved', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getLOIParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const loi_command = new GetObjectCommand(getLOIParams);
+    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
+
+    const getDOUParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const dou_command = new GetObjectCommand(getDOUParams);
+    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
+
+    const getITRParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const itr_command = new GetObjectCommand(getITRParams);
+    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
+
+    const getApproveParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const approve_command = new GetObjectCommand(getApproveParams);
+    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023',  loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url }
+    ]
+
+    return res.render('approvedTravels', { applications });
+});
+
+// render rejected travel abroad
+router.get('/admin/travel-abroad/rejected', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getLOIParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const loi_command = new GetObjectCommand(getLOIParams);
+    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
+
+    const getDOUParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const dou_command = new GetObjectCommand(getDOUParams);
+    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
+
+    const getITRParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const itr_command = new GetObjectCommand(getITRParams);
+    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url }
+    ]
+
+    return res.render('rejectedTravels', { applications });
+});
+
+// ======= ADMIN: THESIS BUDGET ROUTES ======= //
+
+// render admin applications of thesis budget
+router.get('/admin/thesis-budget', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const af_command = new GetObjectCommand(getAFParams);
+    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    // id here is application id NOT user id
+    const applications = [
+        { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', af: af_url, date: '03/03/2024' },
+        { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University',  af: af_url,  date: '03/03/2024' },
+        { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', af: af_url,  date: '03/03/2024' }
+    ]
+
+    return res.render('adminThesis', { applications });
+});
+
+// approve thesis budget application
+router.post('/admin/thesis-budget-approve', upload.single("budget"), checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
+    console.log(req.file);
+    return res.redirect('/admin/thesis-budget/approved');
+});
+
+// reject thesis budget application
+router.post('/admin/thesis-budget-reject', checkNotAuthenticatedAdmin, async (req, res)=>{
+    console.log(req.body);
+    return res.redirect('/admin/thesis-budget/rejected');
+});
+
+// render approved thesis budget
+router.get('/admin/thesis-budget/approved', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const af_command = new GetObjectCommand(getAFParams);
+    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
+
+    const getApproveParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const approve_command = new GetObjectCommand(getApproveParams);
+    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url, approved: approve_url },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url, approved: approve_url },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url, approved: approve_url }
+    ]
+
+    return res.render('approvedThesis', { applications });
+});
+
+// render rejected thesis budget
+router.get('/admin/thesis-budget/rejected', checkNotAuthenticatedAdmin, async (req, res)=>{
+    const getAFParams = {
+        Bucket: bucketName,
+        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+    }
+    const af_command = new GetObjectCommand(getAFParams);
+    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
+
+    // sample data only, replace when querying db
+    const applications = [
+        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url },
+        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url },
+        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url }
+    ]
+
+    return res.render('rejectedThesis', { applications });
 });
 
 

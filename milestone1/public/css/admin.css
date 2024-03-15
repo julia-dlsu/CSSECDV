@@ -44,8 +44,9 @@
 }
 
 .card-subtitle {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     overflow: hidden !important;
+    margin-bottom: 0.5rem !important;
 }
 
 .card-footer {
@@ -73,4 +74,27 @@ a:hover {
 
 img {
     max-height: 15rem;
+}
+
+.card-link {
+    font-size: 0.9rem;
+}
+
+.btn-margin {
+    margin-bottom: 0.6rem;
+}
+
+.link-container {
+    margin-top: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.card-text {
+    font-size: 0.9rem;
+    margin-bottom: 0.0rem !important;
+}
+
+.invalid-msg {
+	color: red;
+	font-size: 90%;
 }
