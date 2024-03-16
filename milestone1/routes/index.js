@@ -17,6 +17,7 @@ const userThesisController = require('../controllers/userThesisController');
 
 // ADMIN CONTROLLERS
 const adminAuthController = require('../controllers/adminAuthController');
+const adminAnnounceController = require('../controllers/adminAnnounceController');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -145,50 +146,14 @@ router.get("/admin/logout", adminAuthController.logoutAdmin);
 
 
 // ======= ADMIN: ANNOUNCEMENT ROUTES ======= //
-
 // render admin dashboard
-router.get('/admin/dashboard', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const posts = [
-        { date: '03/03/2023', admin: 'admin1', title: 'Test1', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-        { date: '03/03/2023', admin: 'admin2', title: 'Test2', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-        { date: '03/03/2023', admin: 'admin3', title: 'Test3', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' }
-    ]
-
-    const data = {
-        user: req.user.username,
-        posts
-    }
-
-    return res.render('adminDashboard', data);
-});
-
+router.get('/admin/dashboard', checkNotAuthenticatedAdmin, adminAnnounceController.getAdminDashboard);
 // render admin own announcements
-router.get('/admin/announcements', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const posts = [
-        { id: 1, date: '03/03/2023', admin: 'admin1', title: 'Test1', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-        { id: 2, date: '03/03/2023', admin: 'admin2', title: 'Test2', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-        { id: 3, date: '03/03/2023', admin: 'admin3', title: 'Test3', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' }
-    ]
-
-    const data = {
-        user: req.user.username,
-        posts
-    }
-
-    return res.render('adminAnnouncements', data);
-});
-
+router.get('/admin/announcements', checkNotAuthenticatedAdmin, adminAnnounceController.getAdminAnnouncements);
 // create announcement
-router.post('/admin/create-announcement', checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/admin/dashboard');
-});
-
+router.post('/admin/create-announcement', checkNotAuthenticatedAdmin, adminAnnounceController.createAnnouncement);
 // delete announcement
-router.post('/admin/announcement-delete', checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/admin/announcements');
-});
+router.post('/admin/announcement-delete', checkNotAuthenticatedAdmin, adminAnnounceController.deleteAnnouncement);
 
 
 // ======= ADMIN: SCHOLAR ROUTES ======= //
