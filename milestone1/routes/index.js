@@ -8,6 +8,7 @@ const userAuthController = require('../controllers/userAuthController');
 const userProfileController = require('../controllers/userProfileController');
 const userRenewController = require('../controllers/userRenewController');
 const userTravelController = require('../controllers/userTravelController');
+const userThesisController = require('../controllers/userThesisController');
 const { pool } = require("../models/dbConfig");
 const { Router } = require('express');
 const express = require('express')
@@ -115,46 +116,12 @@ router.post('/users/travel-abroad-apply', upload.fields([{ name: "loi" }, { name
 
 
 // ======= USERS: THESIS BUDGET ROUTES ======= //
-
 // render renewal applications
-router.get('/users/thesis-budget', checkNotAuthenticatedUser, async (req, res)=>{
-    const getAFParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const af_command = new GetObjectCommand(getAFParams);
-    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
-
-    const getApproveParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const approve_command = new GetObjectCommand(getApproveParams);
-    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    // id here is for application NOT user
-    const applications = [
-        { id: 1, af: af_url, approved: approve_url, date: '03/03/2024', status: 'Approved' },
-        { id: 2, af: af_url, approved: approve_url, date: '03/04/2024', status: 'Rejected' },
-        { id: 3, af: af_url, approved: approve_url, date: '03/05/2024', status: 'Pending' }
-    ]
-
-    return res.render('userThesis', { applications });
-});
-
+router.get('/users/thesis-budget', checkNotAuthenticatedUser, userThesisController.getThesisApps);
 // delete renewal
-router.post('/users/thesis-budget-delete', checkNotAuthenticatedUser, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/users/thesis-budget');
-});
-
+router.post('/users/thesis-budget-delete', checkNotAuthenticatedUser, userThesisController.deleteThesisApp);
 // apply for renewal
-router.post('/users/thesis-budget-apply', upload.single("af"), checkNotAuthenticatedUser, async (req, res)=>{
-    console.log(req.body);
-    console.log(req.file);
-    return res.redirect('/users/thesis-budget');
-});
+router.post('/users/thesis-budget-apply', upload.single("af"), checkNotAuthenticatedUser, userThesisController.applyThesis);
 
 
 // ======= ADMIN: USER ROUTES ======= //
