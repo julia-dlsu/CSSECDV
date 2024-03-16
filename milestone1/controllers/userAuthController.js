@@ -158,48 +158,48 @@ const controller = {
                     if (err) {
                         console.error('Error: ', err);
                         res.status(500).send('Internal Server Error');
-                    }
-
-                    console.log(results.rows);
+                    } else {
+                        console.log(results.rows);
     
-                    if (results.rows.length > 0){
-                        if (results.rows[0].email === email){
-                            errors.push({ message: "Email already registered." });
-                        }
-                        if (results.rows[0].username === uname){
-                            errors.push({ message: "Username already registered." });
-                        }
-                        res.render("register", { errors });
-                    } else{ // register the user
-                        // register the user in the users table
-                        pool.query(
-                            `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
-                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                            RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
-                                if (err) {
-                                    console.error('Error: ', err);
-                                    res.status(500).send('Internal Server Error');
-                                }
-
-                                console.log(results.rows);
+                        if (results.rows.length > 0){
+                            if (results.rows[0].email === email){
+                                errors.push({ message: "Email already registered." });
                             }
-                        );
-
-                        // add the email to the users_additional_info table
-                        pool.query(
-                            `INSERT INTO users_additional_info (email)
-                            VALUES ($1)
-                            RETURNING email`, [email], (err, results)=>{
-                                if (err) {
-                                    console.error('Error: ', err);
-                                    res.status(500).send('Internal Server Error');
-                                }
-
-                                console.log(results.rows);
-                                req.flash('success_msg', "You are now registered. Please log in.");
-                                res.redirect('/users/login');
+                            if (results.rows[0].username === uname){
+                                errors.push({ message: "Username already registered." });
                             }
-                        );
+                            res.render("register", { errors });
+                        } else{ // register the user
+                            // register the user in the users table
+                            pool.query(
+                                `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
+                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
+                                    if (err) {
+                                        console.error('Error: ', err);
+                                        res.status(500).send('Internal Server Error');
+                                    } else {
+                                        console.log(results.rows);
+                                    }
+                                }
+                            );
+
+                            // add the email to the users_additional_info table
+                            pool.query(
+                                `INSERT INTO users_additional_info (email)
+                                VALUES ($1)
+                                RETURNING email`, [email], (err, results)=>{
+                                    if (err) {
+                                        console.error('Error: ', err);
+                                        res.status(500).send('Internal Server Error');
+                                    } else {
+                                        console.log(results.rows);
+                                        req.flash('success_msg', "You are now registered. Please log in.");
+                                        res.redirect('/users/login');
+                                    }
+                                }
+                            );
+                        }
                     }
                 }
             )
@@ -373,7 +373,8 @@ const controller = {
                         );
                      }           
             } catch (err){
-                throw err
+                console.error('Error:', error);
+                res.status(500).send('Internal Server Error');
             }
         }
         else{
