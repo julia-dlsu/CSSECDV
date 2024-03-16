@@ -69,15 +69,7 @@
               });
                 // Add event listener for button clicks
               document.getElementById('showTextButton').addEventListener('click', function() {
-              // Display the hidden text
-                  var displayText = document.getElementById('displayText');
-                
-                // Toggle the display of the hidden text
-                if (displayText.style.display === 'none') {
-                    displayText.style.display = 'block';
-                } else {
-                    displayText.style.display = 'none';
-                }
+
                 fetch('/update-session-activity')
                   .then(response => {
                     if (!response.ok) {
