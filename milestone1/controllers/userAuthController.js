@@ -182,10 +182,24 @@ const controller = {
                                 }
 
                                 console.log(results.rows);
+                            }
+                        );
+
+                        // add the email to the users_additional_info table
+                        pool.query(
+                            `INSERT INTO users_additional_info (email)
+                            VALUES ($1)
+                            RETURNING email`, [email], (err, results)=>{
+                                if (err) {
+                                    console.error('Error: ', err);
+                                    res.status(500).send('Internal Server Error');
+                                }
+
+                                console.log(results.rows);
                                 req.flash('success_msg', "You are now registered. Please log in.");
                                 res.redirect('/users/login');
                             }
-                        )
+                        );
                     }
                 }
             )
