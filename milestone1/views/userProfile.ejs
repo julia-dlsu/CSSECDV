@@ -39,7 +39,7 @@
             </div>
         </div>
 
-        <!-- Profile Information Modal -->
+        <!-- Update Profile Information Modal -->
         <div class="modal fade" id="exampleModal2" tabindex="-1" aria-labelledby="exampleModalLabel2" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -57,6 +57,53 @@
                             <div class="form-group">	
                                 <label for = "degree">Degree: </label>
                                 <input type=text name = "degree" id="degree" class = "form-control" minlength = "1" maxlength = "64" placeholder="Degree" required /> 
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Profile Information Modal -->
+        <div class="modal fade" id="exampleModal3" tabindex="-1" aria-labelledby="exampleModalLabel3" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel">Complete Scholar Information</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <!-- Form to apply -->
+                    <form name="update-profile-information" action ="/users/complete-profile-information" method = "POST">
+                        <div class="modal-body">
+                            <div class="form-group">	
+                                <label for = "scholartype">Scholarship Type*: </label>
+                                <select class="form-control" aria-label=".form-select-lg example" name = "scholartype" id="scholartype" required>
+                                    <option value="Merit" name = "scholartype" id="scholartype" class = "form-control">Merit Scholar</option>
+                                    <option value="RA 7687" name = "scholar-type" id="scholar-type" class = "form-control">RA 7687</option>
+                                </select>
+                            </div>
+                            <div class="form-group">	
+                                <label for = "univ">University: </label>
+                                <input type=text name = "univ" id="univ" class = "form-control" minlength = "1" maxlength = "64" placeholder="University" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "degree">Degree: </label>
+                                <input type=text name = "degree" id="degree" class = "form-control" minlength = "1" maxlength = "64" placeholder="Degree" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "accName">Landbank Account Name*: </label>
+                                <input type=text name = "accName" id="accName" class = "form-control" minlength = "1" maxlength = "64" placeholder="<%= scholar %>" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "accNum">Landbank Account Number*: </label>
+                                <input type=text name = "accNum" id="accNum" class = "form-control" minlength = "1" maxlength = "64" placeholder="1234567891" required /> 
+                            </div>
+                            <div id="announcementHelpInline" class="form-text">
+                                *Please ensure that these values are correct. They cannot be changed once submitted.
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -106,9 +153,15 @@
                         Update Profile Picture
                         </button>
                         <!--Update Information -->
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal2">
-                         Update Information
-                        </button>
+                        <% if (type != null) { %>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal2">
+                            Update Information
+                            </button>
+                        <% } else { %>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal3">
+                            Complete Information
+                            </button>
+                        <% } %>
                     </div>
                 </div>
             </div>

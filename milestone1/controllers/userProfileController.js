@@ -83,7 +83,14 @@ const controller = {
     updateProfileInformation: async (req, res)=>{
         console.log(req.body);
         return res.redirect('/users/profile');
+    },
+
+    // COMPLETE PROFILE INFORMATION
+    completeProfileInformation: async (req, res)=>{
+        console.log(req.body);
+        return res.redirect('/users/profile');
     }
+
 };
 
 module.exports = controller;

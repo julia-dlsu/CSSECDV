@@ -105,6 +105,8 @@ router.get('/users/profile', checkNotAuthenticatedUser, userProfileController.ge
 router.post('/users/update-profile-picture', upload.single("image"), checkNotAuthenticatedUser, userProfileController.updateProfilePicture);
 // update profile information
 router.post('/users/update-profile-information', checkNotAuthenticatedUser, userProfileController.updateProfileInformation);
+// complete profile information
+router.post('/users/complete-profile-information', checkNotAuthenticatedUser, userProfileController.completeProfileInformation);
 
 
 // ======= USERS: RENEW SCHOLARSHIP ROUTES ======= //
