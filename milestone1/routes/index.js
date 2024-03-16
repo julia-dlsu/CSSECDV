@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcrypt');
 const userAuthController = require('../controllers/userAuthController');
+const userProfileController = require('../controllers/userProfileController');
 const { pool } = require("../models/dbConfig");
 const { Router } = require('express');
 const express = require('express')
@@ -82,56 +83,15 @@ router.post('/users/enter-PIN', userAuthController.enterPIN);
 router.post("/users/reset-password", userAuthController.resetPassword);
 
 
-// render dashboard
-router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
-    const posts = [
-        { date: '03/03/2023', admin: 'admin1', title: 'Test1', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-        { date: '03/03/2023', admin: 'admin2', title: 'Test2', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-        { date: '03/03/2023', admin: 'admin3', title: 'Test3', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' }
-    ]
-
-    return res.render('userDashboard', { posts });
-});
-
-// render admin scholars profile
-router.get('/users/profile', checkNotAuthenticatedUser, async (req, res)=>{
-    const getObjectParams = {
-        Bucket: bucketName,
-        Key: req.user.profilepic, // file name
-    }
-    const command = new GetObjectCommand(getObjectParams);
-    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    const person = { 
-        userpic: url, 
-        scholar: 'Julia de Veyra', 
-        email: 'amorbdv@gmail.com', 
-        phone: '09985731197', 
-        type: 'Merit Scholar', 
-        school: 'De La Salle University', 
-        degree: 'BS Computer Science', 
-        accName: 'Julianne Amor B de Veyra', 
-        accNum: '1234567890', 
-        verified: 'True' 
-    };
-
-    return res.render('userProfile', person);
-});
-
+// ======= SCHOLARS: USER PROFILE ROUTES ======= //
+// for loading dashboard
+router.get('/users/dashboard', checkNotAuthenticatedUser, userProfileController.getDashboard);
+// for loading scholars profile
+router.get('/users/profile', checkNotAuthenticatedUser, userProfileController.getUserProfile);
 // update profile pic
-router.post('/users/update-profile-picture', upload.single("image"), checkNotAuthenticatedUser, async (req, res)=>{
-    console.log(req.body);
-    console.log(req.file);
-    return res.redirect('/users/profile');
-});
-
+router.post('/users/update-profile-picture', upload.single("image"), checkNotAuthenticatedUser, userProfileController.updateProfilePicture);
 // update profile information
-router.post('/users/update-profile-information', checkNotAuthenticatedUser, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/users/profile');
-});
-
+router.post('/users/update-profile-information', checkNotAuthenticatedUser, userProfileController.updateProfileInformation);
 
 
 // ======= USERS: RENEW SCHOLARSHIP ROUTES ======= //
