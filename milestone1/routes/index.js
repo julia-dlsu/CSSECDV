@@ -21,6 +21,7 @@ const adminAnnounceController = require('../controllers/adminAnnounceController'
 const adminScholarController = require('../controllers/adminScholarController');
 const adminRenewController = require('../controllers/adminRenewController');
 const adminTravelController = require('../controllers/adminTravelController');
+const adminThesisController = require('../controllers/adminThesisController');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -195,85 +196,16 @@ router.get('/admin/travel-abroad/approved', checkNotAuthenticatedAdmin, adminTra
 router.get('/admin/travel-abroad/rejected', checkNotAuthenticatedAdmin, adminTravelController.getRejectedTravel);
 
 // ======= ADMIN: THESIS BUDGET ROUTES ======= //
-
 // render admin applications of thesis budget
-router.get('/admin/thesis-budget', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getAFParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const af_command = new GetObjectCommand(getAFParams);
-    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    // id here is application id NOT user id
-    const applications = [
-        { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', af: af_url, date: '03/03/2024' },
-        { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University',  af: af_url,  date: '03/03/2024' },
-        { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', af: af_url,  date: '03/03/2024' }
-    ]
-
-    return res.render('adminThesis', { applications });
-});
-
+router.get('/admin/thesis-budget', checkNotAuthenticatedAdmin, adminThesisController.getThesisApps);
 // approve thesis budget application
-router.post('/admin/thesis-budget-approve', upload.single("budget"), checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    console.log(req.file);
-    return res.redirect('/admin/thesis-budget/approved');
-});
-
+router.post('/admin/thesis-budget-approve', upload.single("budget"), checkNotAuthenticatedAdmin, adminThesisController.approveThesisApp);
 // reject thesis budget application
-router.post('/admin/thesis-budget-reject', checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/admin/thesis-budget/rejected');
-});
-
+router.post('/admin/thesis-budget-reject', checkNotAuthenticatedAdmin, adminThesisController.rejectThesisApp);
 // render approved thesis budget
-router.get('/admin/thesis-budget/approved', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getAFParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const af_command = new GetObjectCommand(getAFParams);
-    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
-
-    const getApproveParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const approve_command = new GetObjectCommand(getApproveParams);
-    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    const applications = [
-        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url, approved: approve_url },
-        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url, approved: approve_url },
-        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url, approved: approve_url }
-    ]
-
-    return res.render('approvedThesis', { applications });
-});
-
+router.get('/admin/thesis-budget/approved', checkNotAuthenticatedAdmin, adminThesisController.getApprovedThesis);
 // render rejected thesis budget
-router.get('/admin/thesis-budget/rejected', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getAFParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const af_command = new GetObjectCommand(getAFParams);
-    const af_url = await getSignedUrl(s3, af_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    const applications = [
-        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url },
-        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url },
-        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', af: af_url }
-    ]
-
-    return res.render('rejectedThesis', { applications });
-});
-
+router.get('/admin/thesis-budget/rejected', checkNotAuthenticatedAdmin, adminThesisController.getRejectedThesis);
 
 
 // ======= AUTHENTICATION METHODS ======= //
