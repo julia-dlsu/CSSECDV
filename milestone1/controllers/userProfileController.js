@@ -54,22 +54,38 @@ const controller = {
         }
         const command = new GetObjectCommand(getObjectParams);
         const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-    
-        // sample data only, replace when querying db
-        const person = { 
-            userpic: url, 
-            scholar: 'Julia de Veyra', 
-            email: 'amorbdv@gmail.com', 
-            phone: '09985731197', 
-            type: 'Merit Scholar', 
-            school: 'De La Salle University', 
-            degree: 'BS Computer Science', 
-            accName: 'Julianne Amor B de Veyra', 
-            accNum: '1234567890', 
-            verified: 'True' 
-        };
-    
-        return res.render('userProfile', person);
+
+        pool.query(
+            `SELECT * FROM users_additional_info
+            WHERE email = $1`, [req.user.email], (err, results)=>{
+                if (err) {
+                    console.error('Error: ', err);
+                    res.status(500).send('Internal Server Error');
+                } else {
+                    console.log(results.rows);
+                
+                    if (results.rows.length === 0){
+                        console.log('Incomplete registration');
+                        res.status(500).send('Internal Server Error');
+                    } else {
+                        const person = { 
+                            userpic: url, 
+                            scholar: (req.user.firstname).concat(" ", req.user.lastname), 
+                            email: req.user.email, 
+                            phone: req.user.phonenum, 
+                            type: results.rows[0].scholar_type, 
+                            school: results.rows[0].university, 
+                            degree: results.rows[0].degree, 
+                            accName: results.rows[0].account_name, 
+                            accNum: results.rows[0].account_num, 
+                            verified: (req.user.verified).toString()
+                        };
+                    
+                        return res.render('userProfile', person);
+                    }
+                }
+            }
+        );        
     },
 
     // UPDATE PROFILE PICTURE
