@@ -18,6 +18,7 @@ const userThesisController = require('../controllers/userThesisController');
 // ADMIN CONTROLLERS
 const adminAuthController = require('../controllers/adminAuthController');
 const adminAnnounceController = require('../controllers/adminAnnounceController');
+const adminScholarController = require('../controllers/adminScholarController');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -157,51 +158,14 @@ router.post('/admin/announcement-delete', checkNotAuthenticatedAdmin, adminAnnou
 
 
 // ======= ADMIN: SCHOLAR ROUTES ======= //
-
 // render admin scholars
-router.get('/admin/scholars', checkNotAuthenticatedAdmin, async (req, res)=>{
-    // sample data only, replace when querying db
-    const people = [
-        { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University' },
-        { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University' },
-        { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines' }
-    ]
-
-    return res.render('scholarAccs', { people });
-});
-
+router.get('/admin/scholars', checkNotAuthenticatedAdmin, adminScholarController.getScholarAccs);
 // render admin scholars profile
 // [TODO] turn into /admin/scholars/:id
-router.get('/admin/scholars/profile', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getObjectParams = {
-        Bucket: bucketName,
-        Key: req.user.profilepic, // file name
-    }
-    const command = new GetObjectCommand(getObjectParams);
-    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    const person = { 
-        userpic: url, 
-        scholar: 'Julia de Veyra', 
-        email: 'amorbdv@gmail.com', 
-        type: 'Merit Scholar', 
-        school: 'De La Salle University', 
-        degree: 'BS Computer Science', 
-        accName: 'Julianne Amor B de Veyra', 
-        accNum: '1234567890', 
-        verified: 'True' 
-    };
-
-    return res.render('scholarProfile', person);
-});
-
+router.get('/admin/scholars/profile', checkNotAuthenticatedAdmin, adminScholarController.getScholarProfile);
 // verify admin scholars profile
 // [TODO] turn into /admin/scholars/:id/verify AND functionalities
-router.post('/admin/scholars/profile/verify', checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/admin/scholars');
-});
+router.post('/admin/scholars/profile/verify', checkNotAuthenticatedAdmin, adminScholarController.verifyScholarAcc);
 
 
 // ======= ADMIN: RENEW SCHOLARSHIP ROUTES ======= //
