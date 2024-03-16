@@ -128,6 +128,9 @@ const controller = {
             console.error('Error:', error);
             res.status(500).send('Internal Server Error');
             }
+        finally{
+            console.log('finally block for forget password')
+        }
     },
 
 
@@ -171,6 +174,9 @@ const controller = {
         } catch (error) {
             console.error('Error:', error);
             res.status(500).send('Internal Server Error');
+        }
+        finally{
+            console.log('finally block for enter pin')
         }
     },
 
@@ -230,7 +236,13 @@ const controller = {
                         );
                      }           
             } catch (err){
-                throw err
+                console.error('Error:', err);
+                res.status(500).send('Internal Server Error');
+
+            }
+            finally{
+                console.log('finally block for reset password')
+                
             }
         }
         else{

@@ -68,21 +68,13 @@ router.get('/users/register', checkAuthenticated, (req, res)=>{
 // render login page
 router.get('/users/login', checkAuthenticated, (req, res)=>{
 
- /*if(!req.session){
-    res.redirect("/");
- }
- else{
-    res.render('login');
- }**/
  res.render('login');
+ console.log('LOGIN PAGE')
   
 });
 
 // render dashboard
 router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
-  /*  if(!req.session){
-        res.redirect("/");
-    }*/
 
     const getObjectParams = {
         Bucket: bucketName,
@@ -101,13 +93,8 @@ router.get('/users/dashboard', checkNotAuthenticatedUser, async (req, res)=>{
 
 router.get("/users/anotherpage", (req, res) => {
     console.log("ANOTHER PAGE")
-    if(!req.session){
-        res.redirect("/");
-    }
-    else
-    {
-        res.render('anotherpage')
-    }
+ 
+    res.render('anotherpage')
  
 });
 
@@ -162,25 +149,6 @@ router.get("/admin/logout", (req, res, next) => {
 
 
 // ======= USERS: POST ======= //
-/*
-router.post('/anotherpage', (req, res) => {
-   if (req.session) {
-        req.session.lastActivity = new Date().getTime();
-        console.log('another page last activity: ',req.session.lastActivity)
-    }//maybe add a redirect to "/" when the session is deleted?? basi may error tho
-   //next();
-    console.log("POST req anotherpage")
-    //res.sendStatus(200);
-})
-router.post('/users/dashboard', (req, res) => {
-     if (req.session) {
-        req.session.lastActivity = new Date().getTime();
-        console.log('dashboard last activity: ',req.session.lastActivity)
-    }
-  //  next();
-    console.log("POST req dashboard")
-    //res.sendStatus(200);
-})*/
 // register user
 router.post('/users/register', upload.single("image"), userController.registerUser)
 
@@ -237,6 +205,7 @@ router.post('/users/forget-password', async (req, res) => {
         console.error('Error:', error);
         res.status(500).send('Internal Server Error');
     }
+
 });
 
 
@@ -320,6 +289,7 @@ router.post('/users/enter-PIN', async (req, res) => {
         console.error('Error:', error);
         res.status(500).send('Internal Server Error');
     }
+
 });
 
 router.post("/users/reset-password", async (req, res) => {
@@ -380,6 +350,7 @@ router.post("/users/reset-password", async (req, res) => {
         } catch (err){
             throw err
         }
+     
     }
     else{
         res.render('reset-password', {email: email, errors})

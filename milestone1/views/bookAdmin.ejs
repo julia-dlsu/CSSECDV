@@ -10,11 +10,40 @@
 
 <body>
   <a href="/admin/logout" class="btn btn-primary" role="button">Logout</a>
+  <button id="showTextButton">Click Me</button>
+  <p id="displayText" style="display: none;">This is the text that will be shown when the button is clicked.</p>
+  
  
   <h1>Admin Dashboard</h1>
   <h2>Hello, <%= user %></h2>
   <img src='<%= userpic %>' />
 
+  <script>
+    document.addEventListener('click', function() {
+        // Send request to server to update session's last activity timestamp
+        fetch('/update-session-activity')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to update session activity');
+            }
+          })
+          .catch(error => {
+            console.error('Error updating session activity:', error);
+          });
+      });
+             // Add event listener for button clicks
+             document.getElementById('showTextButton').addEventListener('click', function() {
+      // Display the hidden text
+          var displayText = document.getElementById('displayText');
+        
+        // Toggle the display of the hidden text
+        if (displayText.style.display === 'none') {
+            displayText.style.display = 'block';
+        } else {
+            displayText.style.display = 'none';
+        }
+    });
+    </script>
 </body>
 
 </html>
