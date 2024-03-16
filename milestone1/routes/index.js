@@ -7,6 +7,7 @@ const bcrypt = require('bcrypt');
 const userAuthController = require('../controllers/userAuthController');
 const userProfileController = require('../controllers/userProfileController');
 const userRenewController = require('../controllers/userRenewController');
+const userTravelController = require('../controllers/userTravelController');
 const { pool } = require("../models/dbConfig");
 const { Router } = require('express');
 const express = require('express')
@@ -106,58 +107,11 @@ router.post('/users/renew-scholarship-apply', upload.fields([{ name: "eaf" }, { 
 
 // ======= USERS: TRAVEL ABROAD ROUTES ======= //
 // render renewal applications
-router.get('/users/travel-abroad', checkNotAuthenticatedUser, async (req, res)=>{
-    const getLOIParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const loi_command = new GetObjectCommand(getLOIParams);
-    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
-
-    const getDOUParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const dou_command = new GetObjectCommand(getDOUParams);
-    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
-
-    const getITRParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const itr_command = new GetObjectCommand(getITRParams);
-    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
-
-    const getApproveParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const approve_command = new GetObjectCommand(getApproveParams);
-    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    // id here is for application NOT user
-    const applications = [
-        { id: 1, loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url, date: '03/03/2024', status: 'Approved' },
-        { id: 2, loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url, date: '03/04/2024', status: 'Rejected' },
-        { id: 3, loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url, date: '03/05/2024', status: 'Pending' }
-    ]
-
-    return res.render('userTravel', { applications });
-});
-
+router.get('/users/travel-abroad', checkNotAuthenticatedUser, userTravelController.getTravelApps);
 // delete renewal
-router.post('/users/travel-abroad-delete', checkNotAuthenticatedUser, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/users/travel-abroad');
-});
-
+router.post('/users/travel-abroad-delete', checkNotAuthenticatedUser, userTravelController.deleteTravelApp);
 // apply for renewal
-router.post('/users/travel-abroad-apply', upload.fields([{ name: "loi" }, { name: "dou" }, { name: "itr" }]), checkNotAuthenticatedUser, async (req, res)=>{
-    console.log(req.body);
-    console.log(req.files);
-    return res.redirect('/users/travel-abroad');
-});
+router.post('/users/travel-abroad-apply', upload.fields([{ name: "loi" }, { name: "dou" }, { name: "itr" }]), checkNotAuthenticatedUser, userTravelController.applyTravel);
 
 
 // ======= USERS: THESIS BUDGET ROUTES ======= //
