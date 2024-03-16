@@ -367,7 +367,7 @@ const controller = {
             res.render('reset-password', {email: email, errors})
         }
     
-    },
+    }
 
 };
 

@@ -4,14 +4,19 @@ const multer  = require('multer');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcrypt');
+const { pool } = require("../models/dbConfig");
+const { Router } = require('express');
+const express = require('express');
+
+// USER CONTROLLERS
 const userAuthController = require('../controllers/userAuthController');
 const userProfileController = require('../controllers/userProfileController');
 const userRenewController = require('../controllers/userRenewController');
 const userTravelController = require('../controllers/userTravelController');
 const userThesisController = require('../controllers/userThesisController');
-const { pool } = require("../models/dbConfig");
-const { Router } = require('express');
-const express = require('express')
+
+// ADMIN CONTROLLERS
+const adminAuthController = require('../controllers/adminAuthController');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -124,13 +129,9 @@ router.post('/users/thesis-budget-delete', checkNotAuthenticatedUser, userThesis
 router.post('/users/thesis-budget-apply', upload.single("af"), checkNotAuthenticatedUser, userThesisController.applyThesis);
 
 
-// ======= ADMIN: USER ROUTES ======= //
-
+// ======= ADMIN: ACCOUNT ROUTES ======= //
 // render admin login page
-router.get('/admin/login', checkAuthenticated, (req, res)=>{
-    res.render('adminLogin');
-});
-
+router.get('/admin/login', checkAuthenticated, adminAuthController.getAdminLogin);
 // login admin
 router.post("/admin/login", AdminLoginLimiter,
     passport.authenticate("local", {
@@ -138,16 +139,9 @@ router.post("/admin/login", AdminLoginLimiter,
         failureRedirect: "/admin/login",
         failureFlash: true
     })
-    
 );
-
 // logout admin
-router.get("/admin/logout", (req, res, next) => {
-    req.logout(function(err){
-        if (err) { return next(err); }
-        res.redirect("/");
-    });
-});
+router.get("/admin/logout", adminAuthController.logoutAdmin);
 
 
 // ======= ADMIN: ANNOUNCEMENT ROUTES ======= //
