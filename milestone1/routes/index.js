@@ -20,6 +20,7 @@ const adminAuthController = require('../controllers/adminAuthController');
 const adminAnnounceController = require('../controllers/adminAnnounceController');
 const adminScholarController = require('../controllers/adminScholarController');
 const adminRenewController = require('../controllers/adminRenewController');
+const adminTravelController = require('../controllers/adminTravelController');
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -182,126 +183,16 @@ router.get('/admin/renew-scholarship/approved', checkNotAuthenticatedAdmin, admi
 router.get('/admin/renew-scholarship/rejected', checkNotAuthenticatedAdmin, adminRenewController.getRejectedRenew);
 
 // ======= ADMIN: TRAVEL ABROAD ROUTES ======= //
-
 // render admin applications of travel abroad
-router.get('/admin/travel-abroad', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getLOIParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const loi_command = new GetObjectCommand(getLOIParams);
-    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
-
-    const getDOUParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const dou_command = new GetObjectCommand(getDOUParams);
-    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
-
-    const getITRParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const itr_command = new GetObjectCommand(getITRParams);
-    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    // id here is application id NOT user id
-    const applications = [
-        { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', loi: loi_url, dou: dou_url, itr: itr_url, date: '03/03/2024' },
-        { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University',  loi: loi_url, dou: dou_url, itr: itr_url,  date: '03/03/2024' },
-        { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', loi: loi_url, dou: dou_url, itr: itr_url,  date: '03/03/2024' }
-    ]
-
-    return res.render('adminTravel', { applications });
-});
-
+router.get('/admin/travel-abroad', checkNotAuthenticatedAdmin, adminTravelController.getTravelApps);
 // approve travel abroad application
-router.post('/admin/travel-abroad-approve', upload.single("permit"), checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    console.log(req.file);
-    return res.redirect('/admin/travel-abroad/approved');
-});
-
+router.post('/admin/travel-abroad-approve', upload.single("permit"), checkNotAuthenticatedAdmin, adminTravelController.approveTravelApp);
 // reject travel abroad application
-router.post('/admin/travel-abroad-reject', checkNotAuthenticatedAdmin, async (req, res)=>{
-    console.log(req.body);
-    return res.redirect('/admin/travel-abroad/rejected');
-});
-
+router.post('/admin/travel-abroad-reject', checkNotAuthenticatedAdmin, adminTravelController.rejectTravelApp);
 // render approved travel abroad
-router.get('/admin/travel-abroad/approved', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getLOIParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const loi_command = new GetObjectCommand(getLOIParams);
-    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
-
-    const getDOUParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const dou_command = new GetObjectCommand(getDOUParams);
-    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
-
-    const getITRParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const itr_command = new GetObjectCommand(getITRParams);
-    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
-
-    const getApproveParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const approve_command = new GetObjectCommand(getApproveParams);
-    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    const applications = [
-        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url },
-        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023',  loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url },
-        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url }
-    ]
-
-    return res.render('approvedTravels', { applications });
-});
-
+router.get('/admin/travel-abroad/approved', checkNotAuthenticatedAdmin, adminTravelController.getApprovedTravel);
 // render rejected travel abroad
-router.get('/admin/travel-abroad/rejected', checkNotAuthenticatedAdmin, async (req, res)=>{
-    const getLOIParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const loi_command = new GetObjectCommand(getLOIParams);
-    const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
-
-    const getDOUParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const dou_command = new GetObjectCommand(getDOUParams);
-    const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
-
-    const getITRParams = {
-        Bucket: bucketName,
-        Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-    }
-    const itr_command = new GetObjectCommand(getITRParams);
-    const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
-
-    // sample data only, replace when querying db
-    const applications = [
-        { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url },
-        { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url },
-        { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url }
-    ]
-
-    return res.render('rejectedTravels', { applications });
-});
+router.get('/admin/travel-abroad/rejected', checkNotAuthenticatedAdmin, adminTravelController.getRejectedTravel);
 
 // ======= ADMIN: THESIS BUDGET ROUTES ======= //
 
