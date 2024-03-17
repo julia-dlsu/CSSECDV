@@ -67,11 +67,11 @@
         <div class="container"> 
             <div id="favorites-container" class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-2">
                 <!-- applications -->
-                <% for(var app of applications) { %>
+                <% if (applications.length > 0) { %> <% for(var app of applications) { %>
                     <div class="col mb-1">
                         <div class="card h-100">
 							<div class="card-header">
-                                <p class="card-text float-start qty"><%= app.date %></p>
+                                <p class="card-text float-start qty"><%= app.date_submitted %></p>
                                 <% if (app.status === 'Pending') { %>
                                     <form name="renew-scholarship-delete" action ="/users/renew-scholarship-delete" method = "POST">
                                         <input type=text id="app-id" name="app-id" value="<%= app.id %>" class="form-control" style="display: none">
@@ -87,13 +87,13 @@
 								</div>
                                 <div class="link-container">
                                     <% if (app.status === 'Approved') { %>
-                                        <a href="<%= app.approved %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;Letter of Enrollment</a>
+                                        <a href="<%= app.approve_document %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;Letter of Enrollment</a>
                                     <% } %>
                                 </div>
                             </div>
                         </div>
                     </div>
-                <% } %>
+                <% } %>  <% } %>
             </div>
         </div>
 

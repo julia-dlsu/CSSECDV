@@ -82,8 +82,8 @@
                             <div class="form-group">	
                                 <label for = "scholartype">Scholarship Type*: </label>
                                 <select class="form-control" aria-label=".form-select-lg example" name = "scholartype" id="scholartype" required>
-                                    <option value="Merit" name = "scholartype" id="scholartype" class = "form-control">Merit Scholar</option>
-                                    <option value="RA 7687" name = "scholar-type" id="scholar-type" class = "form-control">RA 7687</option>
+                                    <option value="Merit" name = "scholartype" id="scholartype" class = "form-control">Merit</option>
+                                    <option value="RA 7687" name = "scholartype" id="scholartype" class = "form-control">RA 7687</option>
                                 </select>
                             </div>
                             <div class="form-group">	
@@ -163,6 +163,13 @@
                             </button>
                         <% } %>
                     </div>
+                    <div>
+                        <ul class="invalid-msg">
+                          <% if (typeof errors != 'undefined') { %> <% errors.forEach(error => { %>
+                            <li><%= error.message %></li>
+                          <% }) %> <% } %>
+                        </ul>
+                      </div>
                 </div>
             </div>
         </div>
