@@ -126,48 +126,46 @@ const controller = {
             errors.push({ message: ".PDF files only." });
         }
 
-        // resize image
-        const eafBuffer = await sharp(req.files.eaf[0].buffer)
-            .resize({height: 180, width: 180, fit: "contain" })
-            .toBuffer();
-        const gradesBuffer = await sharp(req.files.grades[0].buffer)
-            .resize({height: 180, width: 180, fit: "contain" })
-            .toBuffer();
-        
-        // config the upload details to send to s3
-        const eafName = generateFileName();
-        const gradesName = generateFileName();
+        if (errors.length > 0){
+            alert(errors.join("\n"));
+        } else {
+            // config the upload details to send to s3
+            const eafName = generateFileName();
+            const gradesName = generateFileName();
 
-        const getEAFParams = {
-            Bucket: bucketName,
-            Body: eafBuffer,  // actual eaf data
-            Key: eafName, // becomes the file name
-            ContentType: req.files.eaf[0].mimetype
-        };
+            // upload
+            const getEAFParams = {
+                Bucket: bucketName,
+                Body: req.files.eaf[0].buffer,  // actual eaf data
+                Key: eafName, // becomes the file name
+                ContentType: req.files.eaf[0].mimetype
+            };
+            // send data to s3 bucket
+            await s3.send(new PutObjectCommand(getEAFParams));
 
-        const getGradesParams = {
-            Bucket: bucketName,
-            Body: gradesBuffer,  // actual grades data
-            Key: gradesName, // becomes the file name
-            ContentType: req.files.grades[0].mimetype
-        };
+            const getGradesParams = {
+                Bucket: bucketName,
+                Body: req.files.grades[0].buffer,  // actual grades data
+                Key: gradesName, // becomes the file name
+                ContentType: req.files.grades[0].mimetype
+            };
+            // send data to s3 bucket
+            await s3.send(new PutObjectCommand(getGradesParams));
 
-        // pool.query(
-        //     `UPDATE users
-        //     SET profilepic = $1
-        //     WHERE email = $2
-        //     RETURNING *`, [fileName, req.user.email], (err, results)=>{
-        //         if (err) {
-        //             console.error('Error: ', err);
-        //             res.status(500).send('Internal Server Error');
-        //         } else {
-        //             console.log(results.rows);
-        //             return res.redirect('/users/profile');
-        //         }
-        //     }
-        // );
-
-        return res.redirect('/users/renew-scholarship');
+            pool.query(
+                `INSERT INTO scholar_renewal_applications (email, date_submitted, eaf, grades, status)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *`, [req.user.email, date, eafName, gradesName, 'Pending'], (err, results)=>{
+                    if (err) {
+                        console.error('Error: ', err);
+                        res.status(500).send('Internal Server Error');
+                    } else {
+                        console.log(results.rows);
+                        return res.redirect('/users/renew-scholarship');
+                    }
+                }
+            );
+        }
     }
 
 };
