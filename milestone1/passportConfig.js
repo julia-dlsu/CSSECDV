@@ -1,12 +1,17 @@
 const LocalStrategy = require("passport-local").Strategy;
 const { pool } = require("./models/dbConfig");
 const bcrypt = require("bcrypt");
+const winston = require('express-winston');
+require('winston-daily-rotate-file');
+const {transports, createLogger, format} = require('winston');
+const logger = require('./authLogger');
+const infoLog = require('./infoLogger');
 
 function initialize(passport) {
   console.log("Initialized");
 
   const authenticateUser = (email, password, done) => {
-    console.log(email, password);
+  //  console.log(email, password);
     pool.query(
       `SELECT * FROM users WHERE email = $1`,
       [email],
@@ -25,13 +30,16 @@ function initialize(passport) {
             if (isMatch) {
               //reset failed_login_attempt
               pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
-              console.log('successful login attempt')
+          //    console.log('successful login attempt')
+              logger.info('Successful login attempt')
               return done(null, user);
             } else {
               //password is incorrect
               //increment failed_login_attempts
               pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
-              console.log('failed login attempt')
+           //   console.log('failed login attempt')
+              logger.warn('Failed login attempt')
+
               return done(null, false, { message: "Incorrect username or password." });            
         }});
         } else {
@@ -40,7 +48,9 @@ function initialize(passport) {
             message: "Incorrect username or password."
           });
         }
-        console.log(results.rows);
+       // console.log(results.rows);
+       const logMessage = JSON.stringify(results.rows); // Convert to a JSON string
+      logger.debug(logMessage); // Log the JSON string
       }
     );
   };

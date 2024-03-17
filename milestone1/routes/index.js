@@ -67,6 +67,15 @@ const AdminLoginLimiter = rateLimit({
     message: "Your account is currently on lockdown for suspicious activity. Please wait to access your account again. Thank you."
 });
 
+//================== FOR TESTING LOGGING ================//
+router.get('/400', (req, res)=>{
+    res.sendStatus(400)
+});
+
+router.get('/500', (req, res)=>{
+    res.sendStatus(500);
+});
+
 // ======= SCHOLARS: USER AUTHENTICATON ROUTES ======= //
 // for loading landing page
 router.get('/', userAuthController.getLandingPage);

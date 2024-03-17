@@ -6,7 +6,6 @@ const flash = require('express-flash');
 const passport = require('passport');
 const pgSession = require('connect-pg-simple')(session)
 
-
 require("dotenv").config();
 
 const initializePassport = require('./passportConfig');
@@ -41,16 +40,18 @@ app.use(session({
     saveUninitialized: false ,
     cookie: {maxAge: 10 * 60 * 1000}
 }));
+
 app.use(passport.initialize());
 app.use(passport.session());
 
 app.use(flash());
+
 //FOR SESSION TIMEOUTS
 app.use((req, res, next) => {
-  try {
-    const session = req.session;
-    console.log('req sid: ', req.sessionID);
+  const session = req.session;
+  console.log('req sid: ', req.sessionID); //putting this outside the try block makes the session timeout 2x
 
+  try {
     // Check if the session exists
     if (!session) {
       return next();
@@ -58,46 +59,34 @@ app.use((req, res, next) => {
 
     // FOR IDLE TIMEOUT (needs testing for admin)
     if (req.session && req.session.lastActivity) {
-
       // for idle timeout
       const currentTime = new Date().getTime();
-      const idleTimeout = 2 * 60 * 1000;
-
-      // console.log('last activity: ', req.session.lastActivity)
+      const idleTimeout = 15 * 60 * 1000;
       idleTime = currentTime - req.session.lastActivity;
       console.log('idle time: ', idleTime)
-      // console.log('currentTime: ', currentTime)
 
       if (currentTime - req.session.lastActivity > idleTimeout) {
         // Session has timed out due to inactivity, destroy it
-
         req.session.destroy((err) => {
           if (err) {
             console.error('Error destroying session:', err);
           } else {
-
             console.log("I D L E   T I M E O U T")
-            sidToDelete = req.sessionID;
-            // not sure if DELETE or SELECT
-            deleteQuery = 'DELETE FROM session WHERE sid = $1'
+            const sidToDelete = req.sessionID;
+            const deleteQuery = 'DELETE FROM session WHERE sid = $1';
             pool.query(deleteQuery, [sidToDelete], (deleteErr, deleteResult) => {
               if (deleteErr) {
                 console.error('Error deleting session record:', deleteErr);
               } else {
                 console.log('Session record deleted successfully');
-                res.redirect("/")
+                res.redirect("/");
               }
-              // res.redirect("/") //getting Error [ERR_HTTP_HEADERS_SENT]: Cannot set headers after they are sent to the client
             });
-
           }
         });
         return;
-
       }
-
     }
-
 
     if (!session.lastAccess) {
       session.lastAccess = new Date().getTime();
@@ -107,9 +96,8 @@ app.use((req, res, next) => {
   } catch (error) {
     console.error('Error:', error);
     res.status(500).send('Internal Server Error');
-  } 
+  }
 });
-
 
 // Middleware to handle updating session activity
 app.use('/update-session-activity', (req, res, next) => {
@@ -127,6 +115,8 @@ app.use((req, res, next) => {
   res.header('Pragma', 'no-cache');
     next();
 });
+
+
 
 // serve static files
 app.use(express.static('public'));

@@ -5,9 +5,13 @@ const flash = require('express-flash');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer'); 
-
+//const winston = require('winston');
+const winston = require('express-winston');
+require('winston-daily-rotate-file');
+const {transports, createLogger, format} = require('winston');
 const app = express();
-
+const logger = require('../authLogger');
+const infoLog = require('../infoLogger');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -148,7 +152,7 @@ const controller = {
         } 
         else { // successful validation
             let hashedPass = await bcrypt.hash(password, 10);
-            console.log(hashedPass);
+            //console.log(hashedPass);
             // send data to s3 bucket
             await s3.send(new PutObjectCommand(uploadParams));
     
@@ -157,7 +161,8 @@ const controller = {
                     `SELECT * FROM users
                     WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
 
-                        console.log(results.rows);
+                     //   console.log(results.rows);
+                        logger.debug(results.rows)
         
                         if (results.rows.length > 0){
                             if (results.rows[0].email === email){
@@ -174,13 +179,16 @@ const controller = {
                                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                                     RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
                                         
-                                        console.log(results.rows);
+                                       // console.log(results.rows);
+                                        logger.debug(results.rows)
+                                        logger.info("Successfully registered a user");
                                         req.flash('success_msg', "You are now registered. Please log in.");
                                         res.redirect('/users/login');
                                     }
                                 )
                             } catch {
                                 console.error('Error:', error);
+                                logger.error('Error:', error);
                                 res.status(500).send('Internal Server Error');
                             }
                         }
@@ -203,6 +211,7 @@ const controller = {
     logoutUser: (req, res, next) => {
         req.logout(function(err){
             if (err) { return next(err); }
+            logger.info("User logs out")
             res.redirect("/");
         });
     },
@@ -224,17 +233,22 @@ const controller = {
             );
     
             //console.log(results.rows);
+            logger.info('User wants to reset password');
     
             if (results.rows.length > 0) {
                 const pin = generateSecurePin();
                 const user = results.rows[0];
             
-                console.log(pin)
+             //   console.log(pin)
+                logger.info('User is given the PIN');
+
     
                 // Hash the pin before it gets stored in the database
-                const hashedPin = await bcrypt.hash(pin.toString(), 10);
+                const hashedPin = await bcrypt.hash(pin.toString(), 12);
     
-                console.log(hashedPin);
+               // console.log(hashedPin);
+               // logger.info('Hashed Password:', hashedPin);
+
     
                 // Store hashedPin variable in the database (in the column PIN)
                 await pool.query(
@@ -246,7 +260,7 @@ const controller = {
                 sendPasswordResetEmail(email, pin);
     
                 // Redirect to enter PIN page
-                console.log("email: ", email)
+                logger.info("User will reset their password", email)
                 res.render('enter-PIN', { email: email });
     
             } else {
@@ -255,6 +269,7 @@ const controller = {
             }
         } catch (error) {
             console.error('Error:', error);
+            logger.error('Error:', error);
             res.status(500).send('Internal Server Error');
         }
     },
@@ -264,9 +279,10 @@ const controller = {
         const { pin } = req.body;
         const email = req.body.email; //string
         let err_msg = '';
-        console.log(`Email parameter from URL: ${email}`);
+      //  console.log(`Email parameter from URL: ${email}`);
         
-        console.log(`Pin is: ${pin}`);
+      //  console.log(`Pin is: ${pin}`);
+        logger.info(`Inputted PIN by user is: ${pin}`);
     
         try {
             // Retrieve user details based on the provided PIN
@@ -279,26 +295,29 @@ const controller = {
                 
                 // Decrypt the stored PIN for comparison
                 const decryptedPinMatch = await bcrypt.compare(pin.toString(), user.pin);
-                console.log('here')
     
                 if (decryptedPinMatch) {
                     // Valid PIN, redirect to the reset password page
                     res.render('reset-password', { email: email });
+                    logger.info("User entered a valid PIN, will be redirected to the reset password page");
                 } else {
                     // Invalid PIN, display an error message
                     req.flash('success_msg', "Invalid PIN")
-                    console.log('invalid pin')
+                  //  console.log('invalid pin')
+                    logger.info("User entered an invalid PIN")
                     res.render('enter-PIN', { email: email });
                 }
             } else {
                 // Invalid PIN, display an error message
-                console.log('pin not found')
+            //    console.log('pin not found')
+                logger.info("PIN not found")
                // req.flash('error_msg',"User not found")
                req.flash('success_msg', "Invalid PIN")
                 res.render('enter-PIN', { email: email});
             }
         } catch (error) {
             console.error('Error:', error);
+            logger.error('Error: ', error);
             res.status(500).send('Internal Server Error');
         }
     },
@@ -306,9 +325,14 @@ const controller = {
     // RESET PASSWORD
     resetPassword: async (req, res) => {
         const {email, password, cpass} = req.body
-        console.log(`Email parameter from URL: ${email}`);
-        console.log(req.body)
+      //  console.log(`Email parameter from URL: ${email}`);
+      //  console.log(req.body)
         let errors = []
+
+        const logMessage = JSON.stringify(req.body); // Convert req.body to a JSON string
+        logger.info('reset password page')
+        logger.debug(logMessage); // Log the JSON string
+
     
         if(!password, !cpass){
             errors.push({message: "Please enter both fields"});
@@ -343,24 +367,32 @@ const controller = {
                 if (results.rows.length > 0){
                     const user = results.rows[0]
                     const newpassword = await bcrypt.hash(password, 10) 
-                    console.log(newpassword)
     
                     pool.query(
                         `UPDATE users SET password = $1 WHERE email = $2`,
                         [newpassword, email], (err, results)=>{
                             if (err){
-                                throw err
-                            }
-                                console.log('setting failed login attempts to 0');
+                                logger.error(err)
+                                res.status(500).send('Internal Server Error')
+                            } else {
+                                logger.info('Setting the failed login attempts to 0 and redirecting the user to the Login page');
                                 pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
+
+                                //delete the pin from the user
+                                pool.query(`UPDATE users SET pin = NULL WHERE email = $1`, [email]);
+
                                 req.flash('success_msg', "You have changed your password. Please log in.");
                                 res.redirect('/users/login');
-                             }
+                            }
+                        }
                                 
-                        );
-                     }           
+                    );
+                }           
             } catch (err){
-                throw err
+                logger.error('Error:', err);
+               // logger.error('Error:', error);
+                res.status(500).send('Internal Server Error');
+               // throw err
             }
         }
         else{
@@ -397,7 +429,9 @@ function sendPasswordResetEmail(email, pin) {
       if (err) {
         console.error('Error sending email:', err);
       } else {
-        console.log('Email sent:', info.response);
+       // console.log('Email sent:', info.response);
+        logger.info('Reset Password Email sent')
+     //   logger.info(info.response)
       }
     });
 };
