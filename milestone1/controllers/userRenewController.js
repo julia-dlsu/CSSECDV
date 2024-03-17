@@ -73,7 +73,7 @@ const controller = {
                 }
             }
             
-            console.log(applications);
+            //console.log(applications);
             return res.render('userRenew', { applications });
         } catch (error) {
             console.error('Error fetching applications: ', error);
@@ -83,8 +83,42 @@ const controller = {
 
     // DELETE PENDING RENEWAL APPLICATION
     deleteRenewalApp: async (req, res)=>{
-        console.log(req.body);
-        return res.redirect('/users/renew-scholarship');
+        let appId = req.body.appId;
+        appId = parseInt(appId);
+        console.log(appId);
+
+        // ensures that application being deleted has "Pending" status
+        pool.query(
+            `SELECT * FROM scholar_renewal_applications
+            WHERE id = $1 AND status = $2`, [appId, 'Pending'], (err, results)=>{
+                if (err) {
+                    console.error('Error: ', err);
+                    res.status(500).send('Internal Server Error');
+                } else {
+                    console.log(results.rows);
+                    
+                    if (results.rows.length === 0){
+                        alert("Selected application cannot be deleted anymore.");
+                        console.log("Selected application cannot be deleted anymore.");
+                    } else { // application still has 'Pending' status
+                        pool.query(
+                            `UPDATE scholar_renewal_applications
+                            SET status = $1
+                            WHERE id = $2
+                            RETURNING *`, ['Deleted', appId], (err, results)=>{
+                                if (err) {
+                                    console.error('Error: ', err);
+                                    res.status(500).send('Internal Server Error');
+                                } else {
+                                    console.log(results.rows);
+                                    return res.redirect('/users/renew-scholarship');
+                                }
+                            }
+                        );
+                    }
+                }
+            }
+        );
     },
 
     // APPLY FOR RENEWAL

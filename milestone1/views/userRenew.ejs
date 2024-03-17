@@ -74,7 +74,7 @@
                                 <p class="card-text float-start qty"><%= app.date_submitted %></p>
                                 <% if (app.status === 'Pending') { %>
                                     <form name="renew-scholarship-delete" action ="/users/renew-scholarship-delete" method = "POST">
-                                        <input type=text id="app-id" name="app-id" value="<%= app.id %>" class="form-control" style="display: none">
+                                        <input type=text id="appId" name="appId" value="<%= app.id %>" class="form-control" style="display: none">
                                         <button type="submit" class="btn ripple float-end remove"><i class="fa fa-trash"></i></button>
                                     </form>
                                 <% } %>
