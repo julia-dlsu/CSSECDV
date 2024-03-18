@@ -27,11 +27,11 @@
         <% for(var post of posts) { %>
           <div class="card container-margin">
             <div class="card-header">
-              <%= post.date %>
+              <%= post.dateposted %>
             </div>
             <div class="card-body">
               <h5 class="card-title"><%= post.title %></h5>
-              <p class="card-text thick"><%= post.admin %></p>
+              <p class="card-text thick"><%= post.posted_by %></p>
               <p class="card-text"><%= post.announcement %></p>
             </div>
           </div>
