@@ -5,7 +5,10 @@ const session = require('express-session');
 const flash = require('express-flash');
 const passport = require('passport');
 const pgSession = require('connect-pg-simple')(session)
-
+const winston = require('express-winston');
+//require('winston-daily-rotate-file');
+const {transports, createLogger, format} = require('winston');
+const logger = require('./globalLogger');
 require("dotenv").config();
 
 const initializePassport = require('./passportConfig');
@@ -46,10 +49,32 @@ app.use(passport.session());
 
 app.use(flash());
 
+//Logging
+app.use(winston.logger({
+  transports: [
+    //new transports.Console(), 
+    new transports.File({
+      filename: 'logErrors.log',
+      level: 'error'
+    }),
+    new transports.File({
+      filename: 'info_logs.log', 
+      level: 'info'
+    })
+  ],
+  format: format.combine(
+    format.json(),
+    format.metadata(),
+    format.timestamp({ format: 'YYYY-MM-DD hh:mm:ss.SSS A' }),
+    format.prettyPrint(),
+    format.errors({ stack: true })
+  )
+}));
+
 //FOR SESSION TIMEOUTS
 app.use((req, res, next) => {
   const session = req.session;
-  console.log('req sid: ', req.sessionID); //putting this outside the try block makes the session timeout 2x
+//  console.log('req sid: ', req.sessionID); 
 
   try {
     // Check if the session exists
@@ -61,24 +86,24 @@ app.use((req, res, next) => {
     if (req.session && req.session.lastActivity) {
       // for idle timeout
       const currentTime = new Date().getTime();
-      const idleTimeout = 15 * 60 * 1000;
+      const idleTimeout = 5 * 60 * 1000;
       idleTime = currentTime - req.session.lastActivity;
-      console.log('idle time: ', idleTime)
+      //logger.debug('idle time: ', idleTime)
 
       if (currentTime - req.session.lastActivity > idleTimeout) {
         // Session has timed out due to inactivity, destroy it
         req.session.destroy((err) => {
           if (err) {
-            console.error('Error destroying session:', err);
+            logger.error('Error destroying session:', err);
           } else {
-            console.log("I D L E   T I M E O U T")
+            logger.debug("I D L E   T I M E O U T")
             const sidToDelete = req.sessionID;
             const deleteQuery = 'DELETE FROM session WHERE sid = $1';
             pool.query(deleteQuery, [sidToDelete], (deleteErr, deleteResult) => {
               if (deleteErr) {
-                console.error('Error deleting session record:', deleteErr);
+                logger.error('Error deleting session record:', deleteErr);
               } else {
-                console.log('Session record deleted successfully');
+                logger.debug('Session record deleted successfully');
                 res.redirect("/");
               }
             });
@@ -103,7 +128,8 @@ app.use((req, res, next) => {
 app.use('/update-session-activity', (req, res, next) => {
   if (req.session) {
     req.session.lastActivity = new Date().getTime();
-    console.log('last activity 3: ', req.session.lastActivity)
+   // console.log('last activity 3: ', req.session.lastActivity)
+   logger.debug('last activity 3:', { lastActivity: req.session.lastActivity });
   }
   next();
 });
@@ -114,6 +140,23 @@ app.use((req, res, next) => {
   res.header('Expires', '-1');
   res.header('Pragma', 'no-cache');
     next();
+});
+
+
+
+// Middleware to simulate an error
+app.get('/simulate-error', (req, res, next) => {
+  try {
+    throw new Error('Simulated error for testing');
+  } catch (error) {
+    next(error); // Pass the error to the error-handling middleware
+  }
+});
+
+// Error-handling middleware
+app.use((error, req, res, next) => {
+  logger.error('Error occurred:', error); // Log the error
+  res.status(500).send('Internal Server Error'); // Send a response to the client
 });
 
 

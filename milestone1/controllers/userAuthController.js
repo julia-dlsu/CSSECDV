@@ -11,7 +11,6 @@ require('winston-daily-rotate-file');
 const {transports, createLogger, format} = require('winston');
 const app = express();
 const logger = require('../authLogger');
-const infoLog = require('../infoLogger');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -162,7 +161,7 @@ const controller = {
                     WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
 
                      //   console.log(results.rows);
-                        logger.debug(results.rows)
+                        logger.debug('Checking if the email or username was registerd', {RegisterCheck: results.rows})
         
                         if (results.rows.length > 0){
                             if (results.rows[0].email === email){
@@ -180,22 +179,22 @@ const controller = {
                                     RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
                                         
                                        // console.log(results.rows);
-                                        logger.debug(results.rows)
+                                        logger.debug('Registered user id and hashed password', {User: results.rows})
                                         logger.info("Successfully registered a user");
                                         req.flash('success_msg', "You are now registered. Please log in.");
                                         res.redirect('/users/login');
                                     }
                                 )
                             } catch {
-                                console.error('Error:', error);
-                                logger.error('Error:', error);
+                                console.error('Error:', err);
+                                logger.error('Error:', err);
                                 res.status(500).send('Internal Server Error');
                             }
                         }
                     }
                 )
             } catch {
-                console.error('Error:', error);
+                console.error('Error:', err);
                 res.status(500).send('Internal Server Error');
             }
         }
@@ -211,7 +210,7 @@ const controller = {
     logoutUser: (req, res, next) => {
         req.logout(function(err){
             if (err) { return next(err); }
-            logger.info("User logs out")
+            logger.info('User logs out')
             res.redirect("/");
         });
     },
@@ -268,7 +267,7 @@ const controller = {
                 res.redirect('/users/forget-password'); 
             }
         } catch (error) {
-            console.error('Error:', error);
+          //  console.error('Error:', error);
             logger.error('Error:', error);
             res.status(500).send('Internal Server Error');
         }
@@ -316,7 +315,7 @@ const controller = {
                 res.render('enter-PIN', { email: email});
             }
         } catch (error) {
-            console.error('Error:', error);
+         //   console.error('Error:', error);
             logger.error('Error: ', error);
             res.status(500).send('Internal Server Error');
         }

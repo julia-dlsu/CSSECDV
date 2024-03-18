@@ -5,7 +5,6 @@ const winston = require('express-winston');
 require('winston-daily-rotate-file');
 const {transports, createLogger, format} = require('winston');
 const logger = require('./authLogger');
-const infoLog = require('./infoLogger');
 
 function initialize(passport) {
   console.log("Initialized");
@@ -50,7 +49,7 @@ function initialize(passport) {
         }
        // console.log(results.rows);
        const logMessage = JSON.stringify(results.rows); // Convert to a JSON string
-      logger.debug(logMessage); // Log the JSON string
+      logger.debug('logMessage',{logMessage}); // Log the JSON string
       }
     );
   };

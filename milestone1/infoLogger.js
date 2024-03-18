@@ -10,15 +10,13 @@ const infoLogger = createLogger({
             filename: 'info_logs.log',
             level: 'info'
         }),
-        new transports.File({
-            filename: 'logErrors.log',
-            level: 'error'
-        })
+
     ],
     format: format.combine(
         format.timestamp(),
         format.json(), //not sure to use simple or json
-        format.prettyPrint()
+        format.prettyPrint(),
+        format.errors({stack: true})
     ),
     statusLevels: true
 });
