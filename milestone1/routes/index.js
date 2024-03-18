@@ -105,8 +105,6 @@ router.get('/users/profile', checkNotAuthenticatedUser, userProfileController.ge
 router.post('/users/update-profile-picture', upload.single("image"), checkNotAuthenticatedUser, userProfileController.updateProfilePicture);
 // update profile information
 router.post('/users/update-profile-information', checkNotAuthenticatedUser, userProfileController.updateProfileInformation);
-// complete profile information
-router.post('/users/complete-profile-information', checkNotAuthenticatedUser, userProfileController.completeProfileInformation);
 
 
 // ======= USERS: RENEW SCHOLARSHIP ROUTES ======= //
@@ -166,10 +164,8 @@ router.post('/admin/announcement-delete', checkNotAuthenticatedAdmin, adminAnnou
 // render admin scholars
 router.get('/admin/scholars', checkNotAuthenticatedAdmin, adminScholarController.getScholarAccs);
 // render admin scholars profile
-// [TODO] turn into /admin/scholars/:id
-router.get('/admin/scholars/profile', checkNotAuthenticatedAdmin, adminScholarController.getScholarProfile);
+router.get('/admin/scholars/:id', checkNotAuthenticatedAdmin, adminScholarController.getScholarProfile);
 // verify admin scholars profile
-// [TODO] turn into /admin/scholars/:id/verify AND functionalities
 router.post('/admin/scholars/profile/verify', checkNotAuthenticatedAdmin, adminScholarController.verifyScholarAcc);
 
 

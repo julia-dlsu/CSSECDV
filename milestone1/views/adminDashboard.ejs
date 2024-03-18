@@ -39,6 +39,13 @@
               <h1 class="modal-title fs-5" id="exampleModalLabel">Create an Announcement</h1>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div>
+              <ul class="invalid-msg">
+                <% if (typeof errors != 'undefined') { %> <% errors.forEach(error => { %>
+                  <li><%= error.message %></li>
+                <% }) %> <% } %>
+              </ul>
+            </div>
             <!-- Form to create an announcement -->
             <form name="create-announcement" action ="/admin/create-announcement" method = "POST">
               <div class="modal-body">
@@ -58,7 +65,7 @@
 
       <div class="container ">
         <!-- announcements -->
-        <% for(var post of posts) { %>
+        <% if (posts.length > 0) { %> <% for(var post of posts) { %>
           <div class="card container-margin">
             <div class="card-header">
               <%= post.date %>
@@ -69,7 +76,7 @@
               <p class="card-text"><%= post.announcement %></p>
             </div>
           </div>
-        <% } %>
+        <% } %> <% } %>
       </div>
       
     </div>

@@ -10,6 +10,7 @@ const app = express();
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { Console } = require("console");
 
 require("dotenv").config();
 
@@ -37,45 +38,84 @@ const controller = {
 
     // LOAD SCHOLAR ACCOUNTS
     getScholarAccs: async (req, res)=>{
-        // sample data only, replace when querying db
-        const people = [
-            { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University' },
-            { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University' },
-            { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines' }
-        ]
-    
-        return res.render('scholarAccs', { people });
+        try {
+            const results = await pool.query(
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, uai.scholar_type as scholar_type, uai.university as university
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email`);
+            
+                const people = results.rows;
+                return res.render('scholarAccs', { people });
+
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
+            return res.status(500).send('Internal Server Error');
+        }
     },
 
     // LOAD SCHOLAR PROFILE
     getScholarProfile: async (req, res)=>{
-        const getObjectParams = {
-            Bucket: bucketName,
-            Key: req.user.profilepic, // file name
+        try {
+            const results = await pool.query(
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, u.phonenum as phonenum, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                WHERE u.id = $1`, [req.params.id]);
+            
+            console.log(results.rows);
+
+            const getObjectParams = {
+                Bucket: bucketName,
+                Key: results.rows[0].profilepic, // file name
+            }
+            const command = new GetObjectCommand(getObjectParams);
+            const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+            const person = { 
+                userpic: url, 
+                scholar: results.rows[0].fullname, 
+                email: results.rows[0].email, 
+                phone: results.rows[0].phonenum, 
+                scholar_type: results.rows[0].scholar_type, 
+                school: results.rows[0].university, 
+                degree: results.rows[0].degree, 
+                accName: results.rows[0].account_name, 
+                accNum: results.rows[0].account_num, 
+                verified: (results.rows[0].verified).toString()
+            };
+
+            console.log(person);
+        
+            return res.render('scholarProfile', person);
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
+            return res.status(500).send('Internal Server Error');
         }
-        const command = new GetObjectCommand(getObjectParams);
-        const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-    
-        // sample data only, replace when querying db
-        const person = { 
-            userpic: url, 
-            scholar: 'Julia de Veyra', 
-            email: 'amorbdv@gmail.com', 
-            type: 'Merit Scholar', 
-            school: 'De La Salle University', 
-            degree: 'BS Computer Science', 
-            accName: 'Julianne Amor B de Veyra', 
-            accNum: '1234567890', 
-            verified: 'True' 
-        };
-    
-        return res.render('scholarProfile', person);
     },
 
     // VERIFY SCHOLAR ACCOUNT
     verifyScholarAcc: async (req, res)=>{
-        console.log(req.body);
-        return res.redirect('/admin/scholars');
+        try{
+        email = req.body.email;
+
+        pool.query(
+            `UPDATE users
+             SET verified = True
+             WHERE email = $1;`,[email],(err, results)=>{
+                if (err){
+                    console.error('Error:', err);
+                    res.status(500).send('Internal Server Error');
+                }
+                else{
+                req.flash('success_msg', "User Verified");
+                return res.redirect('/admin/scholars');
+                }
+            }
+        )
+
+        } catch (err){
+            res.status(500).send('Internal Server Error');
+        }
     }
     
 };

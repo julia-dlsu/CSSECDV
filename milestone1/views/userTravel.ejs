@@ -90,13 +90,13 @@
                             <div class="card-body">
                                 <h6 class="card-subtitle <%= app.status %>"><%= app.status %></h6>
 								<div class="link-container">
-									<a href="<%= app.loi %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;LOI</a>
-    								<a href="<%= app.dou %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;DOU</a>
-                                    <a href="<%= app.itr %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;ITR</a>
+									<a href="<%= app.letter_of_intent %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;LOI</a>
+    								<a href="<%= app.deed_of_undertaking %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;DOU</a>
+                                    <a href="<%= app.comaker_itr %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;ITR</a>
 								</div>
                                 <div class="link-container">
                                     <% if (app.status === 'Approved') { %>
-                                        <a href="<%= app.approved %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;Permit to Travel</a>
+                                        <a href="<%= app.approve_document %>" class="card-link" target=”_blank”><i class="fa-solid fa-file-arrow-down"></i>&nbsp;&nbsp;Permit to Travel</a>
                                     <% } %>
                                 </div>
                             </div>

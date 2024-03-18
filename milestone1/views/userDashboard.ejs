@@ -24,7 +24,7 @@
 
       <div class="container ">
         <!-- announcements -->
-        <% for(var post of posts) { %>
+        <% if (posts.length > 0) { %> <% for(var post of posts) { %>
           <div class="card container-margin">
             <div class="card-header">
               <%= post.dateposted %>
@@ -35,7 +35,7 @@
               <p class="card-text"><%= post.announcement %></p>
             </div>
           </div>
-        <% } %>
+        <% } %> <% } %>
       </div>
       
     </div>

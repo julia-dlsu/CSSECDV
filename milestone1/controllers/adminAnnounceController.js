@@ -37,46 +37,161 @@ const controller = {
 
     // LOAD ADMIN DASHBOARD
     getAdminDashboard: async (req, res)=>{
-        const posts = [
-            { date: '03/03/2023', admin: 'admin1', title: 'Test1', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-            { date: '03/03/2023', admin: 'admin2', title: 'Test2', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-            { date: '03/03/2023', admin: 'admin3', title: 'Test3', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' }
-        ]
-    
-        const data = {
-            user: req.user.username,
-            posts
+        try{
+            const posts = []
+            const post1 = await pool.query(
+                `SELECT * FROM admin_announcement WHERE deleted = False;`
+            ); 
+
+            for (let x = 0; x < post1.rows.length; x++){
+
+                date = post1.rows[x].dateposted 
+                removedTime = date.toISOString().split('T')[0];
+                post1.rows[x].dateposted = removedTime
+
+                
+                posts.push ({
+                    id: post1.rows[x].id,
+                    date: post1.rows[x].dateposted,
+                    admin: post1.rows[x].posted_by,
+                    title: post1.rows[x].title,
+                    announcement: post1.rows[x].announcement
+                })
+
+            }
+
+            const data = {
+                user: req.user.username,
+                posts
+            } 
+
+            return res.render('adminDashboard', data);
+            
+        } catch (err) {
+            console.error('Error:', err);
+            res.status(500).send('Internal Server Error');
         }
-    
-        return res.render('adminDashboard', data);
     },
 
     // LOAD ADMIN OWN ANNOUNCEMENTS
     getAdminAnnouncements: async (req, res)=>{
-        const posts = [
-            { id: 1, date: '03/03/2023', admin: 'admin1', title: 'Test1', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-            { id: 2, date: '03/03/2023', admin: 'admin2', title: 'Test2', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' },
-            { id: 3, date: '03/03/2023', admin: 'admin3', title: 'Test3', announcement: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla venenatis dignissim odio at cursus. Aliquam erat volutpat. Etiam ligula dui, ultricies vitae bibendum sit amet, dignissim et justo. Aenean tempus, arcu sit amet eleifend fringilla, est lacus ullamcorper magna, sit amet sagittis odio lacus sit amet nibh. Cras magna tortor, pharetra quis urna at, consectetur eleifend massa. Morbi hendrerit enim eu hendrerit viverra. Fusce ac eros leo. Duis at sollicitudin orci.' }
-        ]
-    
-        const data = {
-            user: req.user.username,
-            posts
+        try{
+            const posts = []
+            const post1 = await pool.query(
+                `SELECT * FROM admin_announcement WHERE deleted = False;`
+            ); 
+
+            for (let x = 0; x < post1.rows.length; x++){
+
+                date = post1.rows[x].dateposted 
+                removedTime = date.toISOString().split('T')[0];
+                post1.rows[x].dateposted = removedTime
+
+                posts.push ({
+                    id: post1.rows[x].id,
+                    date: post1.rows[x].dateposted,
+                    admin: post1.rows[x].posted_by,
+                    title: post1.rows[x].title,
+                    announcement: post1.rows[x].announcement
+                })
+
+            }
+
+            const data = {
+                user: req.user.username,
+                posts
+            } 
+
+            return res.render('adminAnnouncements', data);
+            
+        } catch (err) {
+            console.error('Error:', err);
+            res.status(500).send('Internal Server Error');
         }
-    
-        return res.render('adminAnnouncements', data);
     },
 
     // CREATE ANNOUNCEMENT
     createAnnouncement: async (req, res)=>{
-        console.log(req.body);
-        return res.redirect('/admin/dashboard');
+        const today = new Date();
+        const day = today.getDate();
+        const month = today.getMonth() + 1; 
+        const year = today.getFullYear();
+        date = month +"-"+ day +"-"+ year 
+
+        title = req.body.title
+        admin = req.user.username
+        announcement = req.body.announcement
+        user = req.user.username
+        let errors = []
+
+        const titleregex = /^[a-zA-Z0-9.,!?&%#$@:;*\-+=\s]{1,64}$/;;
+        if (!(titleregex.test(title))){
+            errors.push({ message: "Invalid title input." });
+        }
+
+        const announcementregex = /^[a-zA-Z0-9.,!?&%#$@:;*\-+=\s]{1,500}$/;;
+        if (!(announcementregex.test(announcement))){
+            errors.push({ message: "Invalid text input." });
+        }
+
+        if (errors.length > 0){
+            res.render('adminDashboard', { errors });
+        }
+        
+        else{
+            errors = ""
+            try {
+                pool.query(
+                    `INSERT INTO admin_announcement (dateposted, posted_by, title, announcement)
+                    VALUES ($1,$2,$3,$4);`, [date, admin, title, announcement],(err, results)=>{
+                        if (err){
+                            console.error('Error:', err);
+                            res.status(500).send('Internal Server Error');
+                        }
+                        else{
+                        req.flash('success_msg', "Announcement Added");
+                        return res.redirect('/admin/dashboard');
+                        }
+                    }
+                )
+            } catch (err) {
+                console.error('Error:', err);
+                res.status(500).send('Internal Server Error');
+            }
+        }
     },
 
     // DELETE ANNOUNCEMENT
     deleteAnnouncement: async (req, res)=>{
-        console.log(req.body);
-        return res.redirect('/admin/announcements');
+
+        try {
+            const today = new Date();
+            const day = today.getDate();
+            const month = today.getMonth() + 1; 
+            const year = today.getFullYear();
+            date = month +"-"+ day +"-"+ year 
+
+            id = req.body.annId;
+            pool.query(
+                `UPDATE admin_announcement
+                 SET deleted = True, dateDeleted = $1
+                 WHERE id = $2;`, [date, id],(err, results)=>{
+                    if (err){
+                        console.error('Error:', err);
+                        res.status(500).send('Internal Server Error');
+                    }
+                    else{
+                    req.flash('success_msg', "Announcement Deleted");
+                    return res.redirect('/admin/dashboard');
+                    }
+                }
+            )
+        } catch (err) {
+            console.error('Error:', err);
+            res.status(500).send('Internal Server Error');
+        }
+
+    
     }
     
 };

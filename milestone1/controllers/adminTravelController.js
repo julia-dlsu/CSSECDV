@@ -37,122 +37,297 @@ const controller = {
 
     // LOAD TRAVEL APPLICATIONS
     getTravelApps: async (req, res)=>{
-        const getLOIParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
+        try{
+            let applications = [];
+            const results = await pool.query(
+                `SELECT * FROM travel_clearance_applications WHERE status = 'Pending';`); 
+
+            const app = results.rows;
+            for (let x = 0; x < app.length; x++){
+        
+                const user = await pool.query(
+                    `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
+
+                const info = await pool.query(
+                    `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
+
+
+                const getObjectParams = {
+                    Bucket: bucketName,
+                    Key: app[x].letter_of_intent, 
+                }
+                const command = new GetObjectCommand(getObjectParams);
+                const urlLoi = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+                const getObjectParams1 = {
+                    Bucket: bucketName,
+                    Key: app[x].deed_of_undertaking, 
+                }
+                const command1 = new GetObjectCommand(getObjectParams1);
+                const urlDou = await getSignedUrl(s3, command1, { expiresIn: 3600 });
+
+                const getObjectParams2 = {
+                    Bucket: bucketName,
+                    Key: app[x].comaker_itr, 
+                }
+                const command2 = new GetObjectCommand(getObjectParams2);
+                const urlItr = await getSignedUrl(s3, command2, { expiresIn: 3600 });
+
+                
+                removedTime = app[x].date_submitted.toISOString().split('T')[0];
+
+
+                applications.push({
+                    id: app[x].id,
+                    scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
+                    type: info.rows[0].scholar_type,
+                    school:info.rows[0].university, 
+                    loi: urlLoi,
+                    dou: urlDou,
+                    itr: urlItr,
+                    date: removedTime
+                })
+            }
+            return res.render('adminTravel', { applications });
+
+        } catch (err) {
+            console.error('Error fetching applications: ', err);
+            return res.status(500).send('Internal Server Error');
         }
-        const loi_command = new GetObjectCommand(getLOIParams);
-        const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
-    
-        const getDOUParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const dou_command = new GetObjectCommand(getDOUParams);
-        const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
-    
-        const getITRParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const itr_command = new GetObjectCommand(getITRParams);
-        const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
-    
-        // sample data only, replace when querying db
-        // id here is application id NOT user id
-        const applications = [
-            { id: 1, scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', loi: loi_url, dou: dou_url, itr: itr_url, date: '03/03/2024' },
-            { id: 2, scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University',  loi: loi_url, dou: dou_url, itr: itr_url,  date: '03/03/2024' },
-            { id: 3, scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', loi: loi_url, dou: dou_url, itr: itr_url,  date: '03/03/2024' }
-        ]
-    
-        return res.render('adminTravel', { applications });
     },
 
     // APPROVE TRAVEL APPLICATION
     approveTravelApp: async (req, res)=>{
-        console.log(req.body);
-        console.log(req.file);
-        return res.redirect('/admin/travel-abroad/approved');
+        try{
+            id = req.body['appId'];
+
+            buffer1 = req.file.buffer
+            const magicNum = buffer1.toString('hex', 0, 4);
+            const pdfNum = "25504446"
+
+            if (magicNum !== pdfNum){
+                console.log(".PDF files only.");
+            }
+            
+            if (buffer1 != null){
+            
+                const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
+            
+                const fileName = generateFileName()
+            
+                const getApproveParams = {
+                    Bucket: bucketName,
+                    Body: req.file.buffer,
+                    Key: fileName,
+                    ContentType: req.file.mimetype
+                } 
+                
+                await s3.send(new PutObjectCommand(getApproveParams));
+                
+                const today = new Date();
+                const day = today.getDate();
+                const month = today.getMonth() + 1; 
+                const year = today.getFullYear();
+                date = month +"-"+ day +"-"+ year 
+            
+                
+                admin = req.user.username;
+                pool.query(
+                    `UPDATE travel_clearance_applications
+                    SET status = 'Approved', approve_document = $1, checked_by = $3, date_status_changed = $4 
+                    WHERE id = $2;`,[fileName, id, admin, date],(err, results)=>{
+                        if (err){
+                            console.error('Error:', err);
+                            res.status(500).send('Internal Server Error');
+                        }
+                        else{
+                        req.flash('success_msg', "User Verified");
+                        return res.redirect('/admin/travel-abroad/approved');
+                        }
+                    }
+                )
+
+            }
+    
+            } catch (err){
+                console.error(err)
+                res.status(500).send('Internal Server Error');
+            }
     },
 
     // REJECT TRAVEL APPLICATION
     rejectTravelApp: async (req, res)=>{
-        console.log(req.body);
-        return res.redirect('/admin/travel-abroad/rejected');
+        try{
+            id = req.body['appId'];
+    
+            const today = new Date();
+            const day = today.getDate();
+            const month = today.getMonth() + 1; 
+            const year = today.getFullYear();
+            date = month +"-"+ day +"-"+ year
+    
+            admin = req.user.username
+        
+            pool.query(
+                `UPDATE travel_clearance_applications
+                 SET status = 'Rejected', checked_by = $2, date_status_changed = $3
+                 WHERE id = $1;`,[id, admin, date],(err, results)=>{
+                    if (err){
+                        console.error('Error:', err);
+                        res.status(500).send('Internal Server Error');
+                    }
+                    else{
+                    req.flash('success_msg', "User Verified");
+                    return res.redirect('/admin/travel-abroad/rejected');
+                    }
+                }
+            )
+    
+            } catch (err){
+                console.error(err)
+                res.status(500).send('Internal Server Error');
+            }
+        
     },
 
     // LOAD APPROVED TRAVEL APPLICATIONS
     getApprovedTravel: async (req, res)=>{
-        const getLOIParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const loi_command = new GetObjectCommand(getLOIParams);
-        const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
+        try{
+            let applications = [] 
+                const results = await pool.query(
+                    `SELECT * FROM travel_clearance_applications WHERE status = 'Approved';`); 
     
-        const getDOUParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const dou_command = new GetObjectCommand(getDOUParams);
-        const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
+                const app = results.rows;
+                for (let x = 0; x < app.length; x++){
+            
+                    const user = await pool.query(
+                        `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
     
-        const getITRParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const itr_command = new GetObjectCommand(getITRParams);
-        const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
+                    const info = await pool.query(
+                        `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
     
-        const getApproveParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const approve_command = new GetObjectCommand(getApproveParams);
-        const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
     
-        // sample data only, replace when querying db
-        const applications = [
-            { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url },
-            { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023',  loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url },
-            { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateApproved: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url, approved: approve_url }
-        ]
+                    const getObjectParams = {
+                        Bucket: bucketName,
+                        Key: app[x].letter_of_intent, // file name
+                    }
+                    const command = new GetObjectCommand(getObjectParams);
+                    const urlLoi = await getSignedUrl(s3, command, { expiresIn: 3600 });
     
-        return res.render('approvedTravels', { applications });
+    
+                    const getObjectParams1 = {
+                        Bucket: bucketName,
+                        Key: app[x].deed_of_undertaking, // file name
+                    }
+                    const command1 = new GetObjectCommand(getObjectParams1);
+                    const urlDou = await getSignedUrl(s3, command1, { expiresIn: 3600 });
+
+                    const getObjectParams2 = {
+                        Bucket: bucketName,
+                        Key: app[x].comaker_itr, // file name
+                    }
+                    const command2 = new GetObjectCommand(getObjectParams2);
+                    const urlItr = await getSignedUrl(s3, command2, { expiresIn: 3600 });
+    
+    
+                    const getApproveParams = {
+                        Bucket: bucketName,
+                        Key: app[x].approve_document, // [TODO]: sample only
+                    }
+                    const approve_command = new GetObjectCommand(getApproveParams);
+                    const urlApp = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                
+                 
+                    removedTime = app[x].date_submitted.toISOString().split('T')[0];
+                    removedTime1 = app[x].date_status_changed.toISOString().split('T')[0];
+
+                    applications.push({
+                        scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
+                        type: info.rows[0].scholar_type,
+                        checkedBy: app[x].checkedBy,
+                        dateApproved: removedTime1,
+                        school:info.rows[0].university, 
+                        dou: urlDou,
+                        approved: urlApp,
+                        loi: urlLoi,
+                        itr: urlItr,
+                        dateSubmitted: removedTime
+                    })
+                }
+
+                return res.render('approvedTravels', { applications });
+    
+            } catch (err) {
+                console.error('Error fetching applications: ', err);
+                return res.status(500).send('Internal Server Error');
+            } 
+        
     },
 
     // LOAD REJECTED TRAVEL APPLICATIONS
     getRejectedTravel: async (req, res)=>{
-        const getLOIParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const loi_command = new GetObjectCommand(getLOIParams);
-        const loi_url = await getSignedUrl(s3, loi_command, { expiresIn: 3600 });
+        try{
+            let applications = [] 
+            const results = await pool.query(
+                `SELECT * FROM travel_clearance_applications WHERE status = 'Rejected';`); 
+            
+            const app = results.rows;
+            for (let x = 0; x < app.length; x++){
+        
+                const user = await pool.query(
+                    `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
+
+                const info = await pool.query(
+                    `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
+
+
+                const getObjectParams = {
+                    Bucket: bucketName,
+                    Key: app[x].letter_of_intent, 
+                }
+                const command = new GetObjectCommand(getObjectParams);
+                const urlLoi = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+
+                const getObjectParams1 = {
+                    Bucket: bucketName,
+                    Key: app[x].deed_of_undertaking, 
+                }
+                const command1 = new GetObjectCommand(getObjectParams1);
+                const urlDou = await getSignedUrl(s3, command1, { expiresIn: 3600 });
+
+                const getObjectParams2 = {
+                    Bucket: bucketName,
+                    Key: app[x].comaker_itr, 
+                }
+                const command2 = new GetObjectCommand(getObjectParams2);
+                const urlItr = await getSignedUrl(s3, command2, { expiresIn: 3600 });
+                 
+        
+                removedTime = app[x].date_submitted.toISOString().split('T')[0];
+                removedTime1 = app[x].date_status_changed.toISOString().split('T')[0];
+
+
+                applications.push({
+                    scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
+                    type: info.rows[0].scholar_type,
+                    checkedBy: app[x].checkedBy,
+                    dateApproved: removedTime1,
+                    school:info.rows[0].university, 
+                    dou: urlDou,
+                    loi: urlLoi,
+                    itr: urlItr,
+                    dateSubmitted: removedTime
+                })
+            }
+            return res.render('rejectedTravels', { applications });
+
+        } catch (err) {
+            console.error('Error fetching applications: ', err);
+            return res.status(500).send('Internal Server Error');
+        }  
     
-        const getDOUParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const dou_command = new GetObjectCommand(getDOUParams);
-        const dou_url = await getSignedUrl(s3, dou_command, { expiresIn: 3600 });
-    
-        const getITRParams = {
-            Bucket: bucketName,
-            Key: 'Thesis-Allowance-Guidelines-1.pdf', // [TODO]: sample only
-        }
-        const itr_command = new GetObjectCommand(getITRParams);
-        const itr_url = await getSignedUrl(s3, itr_command, { expiresIn: 3600 });
-    
-        // sample data only, replace when querying db
-        const applications = [
-            { scholar: 'Julia de Veyra', type: 'Merit Scholar', school: 'De La Salle University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url },
-            { scholar: 'Jodie de Veyra', type: 'RA 7687', school: 'Ateneo De Manila University', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url },
-            { scholar: 'Jaden de Veyra', type: 'RA 7687', school: 'University of the Philippines', checkedBy: 'adminUser', dateRejected: '03/03/2023', dateSubmitted: '03/03/2023', loi: loi_url, dou: dou_url, itr: itr_url }
-        ]
-    
-        return res.render('rejectedTravels', { applications });
+        
     }
     
 };
