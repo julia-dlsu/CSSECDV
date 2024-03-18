@@ -98,7 +98,6 @@ const controller = {
                     console.log(results.rows);
                     
                     if (results.rows.length === 0){
-                        alert("Selected application cannot be deleted anymore.");
                         console.log("Selected application cannot be deleted anymore.");
                     } else { // application still has 'Pending' status
                         pool.query(
@@ -161,7 +160,7 @@ const controller = {
         }
 
         if (errors.length > 0){
-            alert(errors.join("\n"));
+            console.log(errors.join("\n"))
         } else {
             // config the upload details to send to s3
             const eafName = generateFileName();
