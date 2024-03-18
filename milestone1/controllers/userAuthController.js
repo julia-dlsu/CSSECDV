@@ -11,6 +11,7 @@ require('winston-daily-rotate-file');
 const {transports, createLogger, format} = require('winston');
 const app = express();
 const logger = require('../authLogger');
+const globalLogger = require('../globalLogger');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -186,9 +187,15 @@ const controller = {
                                     }
                                 )
                             } catch {
-                                console.error('Error:', err);
-                                logger.error('Error:', err);
-                                res.status(500).send('Internal Server Error');
+                                if (process.env.MODE == 'debug'){ 
+                                    globalLogger.error('Error occurred:', err); // Log the error
+                                    res.status(500).send('Internal Server Error');
+                                    //console.log('debug mode on')
+                                  }
+                                  else{
+                                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                                    //console.log('debug mode off')
+                                  }
                             }
                         }
                     }
@@ -241,13 +248,8 @@ const controller = {
              //   console.log(pin)
                 logger.info('User is given the PIN');
 
-    
                 // Hash the pin before it gets stored in the database
                 const hashedPin = await bcrypt.hash(pin.toString(), 12);
-    
-               // console.log(hashedPin);
-               // logger.info('Hashed Password:', hashedPin);
-
     
                 // Store hashedPin variable in the database (in the column PIN)
                 await pool.query(
@@ -259,7 +261,7 @@ const controller = {
                 sendPasswordResetEmail(email, pin);
     
                 // Redirect to enter PIN page
-                logger.info("User will reset their password", email)
+                logger.info("User will reset their password with the email: ", { email: email })
                 res.render('enter-PIN', { email: email });
     
             } else {
@@ -268,8 +270,15 @@ const controller = {
             }
         } catch (error) {
           //  console.error('Error:', error);
-            logger.error('Error:', error);
-            res.status(500).send('Internal Server Error');
+            if (process.env.MODE == 'debug'){ 
+                globalLogger.error('Error occurred:', error); // Log the error
+                res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+            }
+            else{
+                res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+          }
         }
     },
 
@@ -309,15 +318,22 @@ const controller = {
             } else {
                 // Invalid PIN, display an error message
             //    console.log('pin not found')
-                logger.info("PIN not found")
+                logger.info("PIN and User not found")
                // req.flash('error_msg',"User not found")
                req.flash('success_msg', "Invalid PIN")
                 res.render('enter-PIN', { email: email});
             }
         } catch (error) {
          //   console.error('Error:', error);
-            logger.error('Error: ', error);
-            res.status(500).send('Internal Server Error');
+            if (process.env.MODE == 'debug'){ 
+                globalLogger.error('Error occurred:', error); // Log the error
+                res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+            }
+            else{
+                res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+            }
         }
     },
 
@@ -329,9 +345,8 @@ const controller = {
         let errors = []
 
         const logMessage = JSON.stringify(req.body); // Convert req.body to a JSON string
-        logger.info('reset password page')
-        logger.debug(logMessage); // Log the JSON string
-
+        logger.info('Reset password page')
+        logger.debug('Request to change to reset password', {logMessage: logMessage}); // Log the JSON string
     
         if(!password, !cpass){
             errors.push({message: "Please enter both fields"});
@@ -371,8 +386,15 @@ const controller = {
                         `UPDATE users SET password = $1 WHERE email = $2`,
                         [newpassword, email], (err, results)=>{
                             if (err){
-                                logger.error(err)
-                                res.status(500).send('Internal Server Error')
+                                if (process.env.MODE == 'debug'){ 
+                                    globalLogger.error('Error occurred:', err); // Log the error
+                                    res.status(500).send('Internal Server Error');
+                                    //console.log('debug mode on')
+                                  }
+                                  else{
+                                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                                    //console.log('debug mode off')
+                                  }
                             } else {
                                 logger.info('Setting the failed login attempts to 0 and redirecting the user to the Login page');
                                 pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
@@ -388,10 +410,15 @@ const controller = {
                     );
                 }           
             } catch (err){
-                logger.error('Error:', err);
-               // logger.error('Error:', error);
-                res.status(500).send('Internal Server Error');
-               // throw err
+                if (process.env.MODE == 'debug'){ 
+                    globalLogger.error('Error occurred:', err); // Log the error
+                    res.status(500).send('Internal Server Error');
+                    //console.log('debug mode on')
+                  }
+                  else{
+                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                    //console.log('debug mode off')
+                  }
             }
         }
         else{
@@ -427,10 +454,10 @@ function sendPasswordResetEmail(email, pin) {
     transporter.sendMail(mailOptions, (err, info) => {
       if (err) {
         console.error('Error sending email:', err);
+        globalLogger.error('Error sending email:', err);
       } else {
        // console.log('Email sent:', info.response);
         logger.info('Reset Password Email sent')
-     //   logger.info(info.response)
       }
     });
 };

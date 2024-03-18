@@ -6,7 +6,7 @@ const flash = require('express-flash');
 const passport = require('passport');
 const pgSession = require('connect-pg-simple')(session)
 const winston = require('express-winston');
-//require('winston-daily-rotate-file');
+const dailyRotateFile = require('winston-daily-rotate-file');
 const {transports, createLogger, format} = require('winston');
 const logger = require('./globalLogger');
 require("dotenv").config();
@@ -53,14 +53,24 @@ app.use(flash());
 app.use(winston.logger({
   transports: [
     //new transports.Console(), 
-    new transports.File({
+/*    new transports.File({
       filename: 'logErrors.log',
       level: 'error'
-    }),
+    }), 
     new transports.File({
       filename: 'info_logs.log', 
       level: 'info'
-    })
+    }),*/
+    new dailyRotateFile({ //allows for a different log file per day
+      filename: 'info_logs-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      level: 'info',
+      format: format.combine(
+        format.json(),
+        format.timestamp(),
+        format.prettyPrint(),
+        format.errors({ stack: true })
+      )})
   ],
   format: format.combine(
     format.json(),
@@ -86,7 +96,7 @@ app.use((req, res, next) => {
     if (req.session && req.session.lastActivity) {
       // for idle timeout
       const currentTime = new Date().getTime();
-      const idleTimeout = 5 * 60 * 1000;
+      const idleTimeout = 10 * 60 * 1000;
       idleTime = currentTime - req.session.lastActivity;
       //logger.debug('idle time: ', idleTime)
 
@@ -96,7 +106,6 @@ app.use((req, res, next) => {
           if (err) {
             logger.error('Error destroying session:', err);
           } else {
-            logger.debug("I D L E   T I M E O U T")
             const sidToDelete = req.sessionID;
             const deleteQuery = 'DELETE FROM session WHERE sid = $1';
             pool.query(deleteQuery, [sidToDelete], (deleteErr, deleteResult) => {
@@ -119,7 +128,9 @@ app.use((req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Error:', error);
+    if (process.env.MODE == 'debug'){
+      logger.error('Error:', error);
+    }
     res.status(500).send('Internal Server Error');
   }
 });
@@ -143,7 +154,6 @@ app.use((req, res, next) => {
 });
 
 
-
 // Middleware to simulate an error
 app.get('/simulate-error', (req, res, next) => {
   try {
@@ -155,8 +165,16 @@ app.get('/simulate-error', (req, res, next) => {
 
 // Error-handling middleware
 app.use((error, req, res, next) => {
-  logger.error('Error occurred:', error); // Log the error
-  res.status(500).send('Internal Server Error'); // Send a response to the client
+  if (process.env.MODE == 'debug'){ 
+    logger.error('Error occurred:', error); // Log the error
+    res.status(500).send('Internal Server Error');
+    //console.log('debug mode on')
+  }
+  else{
+    res.status(500).send('Internal Server Error'); // Send a response to the client
+    //console.log('debug mode off')
+  }
+
 });
 
 

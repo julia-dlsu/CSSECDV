@@ -25,6 +25,15 @@ function initialize(passport) {
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
               console.log(err);
+              if (process.env.MODE == 'debug'){ 
+                logger.error('Error occurred:', err); // Log the error
+                res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+              }
+              else{
+                res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+              }
             }
             if (isMatch) {
               //reset failed_login_attempt
@@ -49,7 +58,7 @@ function initialize(passport) {
         }
        // console.log(results.rows);
        const logMessage = JSON.stringify(results.rows); // Convert to a JSON string
-      logger.debug('logMessage',{logMessage}); // Log the JSON string
+      logger.debug('Info of user who logged in',{logMessage}); // Log the JSON string
       }
     );
   };
