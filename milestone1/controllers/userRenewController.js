@@ -65,7 +65,7 @@ const controller = {
                 if (applications[i].approve_document != null){
                     const getApproveParams = {
                         Bucket: bucketName,
-                        Key: applications[i].approve_document, // [TODO]: sample only
+                        Key: applications[i].approve_document,
                     }
                     const approve_command = new GetObjectCommand(getApproveParams);
                     const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
@@ -131,21 +131,17 @@ const controller = {
         const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
         const eaf_file = req.files.eaf[0];
         const grades_file = req.files.grades[0];
-        console.log('file1: ', req.files.eaf[0]);
-        console.log('file1: ', req.files.grades[0]);
         let errors = [];
 
         // ======= FILE VALIDATION ======= //
         // size check
         const maxSize = 1024 * 1024 * 1; // 1 for 1mb
-        if (eaf_file.size > maxSize && grades_file.size > maxSize){
+        if (eaf_file.size > maxSize || grades_file.size > maxSize){
             errors.push({ message: "Max upload size 1MB." });
         }
 
-        console.log('test: ', req.files)
-
         // extention based file type check
-        if (eaf_file.mimetype != "application/pdf" && grades_file.mimetype != "application/pdf"){
+        if (eaf_file.mimetype != "application/pdf" || grades_file.mimetype != "application/pdf"){
             errors.push({ message: "Files are not a .PDF file." });
         }
 
@@ -155,12 +151,53 @@ const controller = {
         const eaf_magicNum = eaf_buffer.toString('hex', 0, 4);
         const grades_magicNum = grades_buffer.toString('hex', 0, 4);
         const pdfNum = "25504446";
-        if (eaf_magicNum !== pdfNum && grades_magicNum !== pdfNum){
+        if (eaf_magicNum !== pdfNum || grades_magicNum !== pdfNum){
             errors.push({ message: ".PDF files only." });
         }
 
         if (errors.length > 0){
-            console.log(errors.join("\n"))
+            try {
+                const results = await pool.query(
+                    `SELECT *, TO_CHAR(date_submitted, 'YYYY-MM-DD') AS date_submitted FROM scholar_renewal_applications WHERE status != $1`, ['Deleted']);
+                
+                const applications = results.rows;
+    
+                for (let i = 0; i < applications.length; i++){
+                    if (applications[i].eaf != null && applications[i].grades != null){
+                        const getEAFParams = {
+                            Bucket: bucketName,
+                            Key: applications[i].eaf,
+                        }
+                        const eaf_command = new GetObjectCommand(getEAFParams);
+                        const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+                        applications[i].eaf = eaf_url
+        
+                        const getGradesParams = {
+                            Bucket: bucketName,
+                            Key: applications[i].grades,
+                        }
+                        const grades_command = new GetObjectCommand(getGradesParams);
+                        const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+                        applications[i].grades = grades_url
+                    }
+            
+                    if (applications[i].approve_document != null){
+                        const getApproveParams = {
+                            Bucket: bucketName,
+                            Key: applications[i].approve_document, // [TODO]: sample only
+                        }
+                        const approve_command = new GetObjectCommand(getApproveParams);
+                        const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                        applications[i].approve_document = approve_url
+                    }
+                }
+                
+                console.log('ERRORS: ', errors);
+                return res.render('userRenew', { applications, errors });
+            } catch (error) {
+                console.error('Error fetching applications: ', error);
+                return res.status(500).send('Internal Server Error');
+            }
         } else {
             // config the upload details to send to s3
             const eafName = generateFileName();

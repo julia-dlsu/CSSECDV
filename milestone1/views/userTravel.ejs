@@ -57,6 +57,12 @@
                                 <label for="grades" >Upload Co-Maker's ITR</label>
                                 <input type=file accept="application/pdf" id="itr" name="itr" class="form-control btn-margin" required />
                             </div>
+                            <div id="announcementHelpInline" class="form-text">
+                                Please ensure that you have double checked the documents you are submitting. Once submitted, you cannot edit the information you have submitted.
+                            </div>
+                            <div id="announcementHelpInline" class="form-text">
+                                Please ensure that you do not currently have pending applications. Multiple submissions may result in your application being rejected.
+                            </div>
                         </div>
                         <div class="modal-footer">
                             <button type="submit" class="btn btn-primary">Submit</button>
@@ -73,10 +79,10 @@
                     <div class="col mb-1">
                         <div class="card h-100">
 							<div class="card-header">
-                                <p class="card-text float-start qty"><%= app.date %></p>
+                                <p class="card-text float-start qty"><%= app.date_submitted %></p>
                                 <% if (app.status === 'Pending') { %>
                                     <form name="travel-abroad-delete" action ="/users/travel-abroad-delete" method = "POST">
-                                        <input type=text id="app-id" name="app-id" value="<%= app.id %>" class="form-control" style="display: none">
+                                        <input type=text id="appId" name="appId" value="<%= app.id %>" class="form-control" style="display: none">
                                         <button type="submit" class="btn ripple float-end remove"><i class="fa fa-trash"></i></button>
                                     </form>
                                 <% } %>
