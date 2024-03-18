@@ -35,7 +35,7 @@
               <p class="card-text"><%= post.announcement %></p>
               <form name = "announcement-delete" action="/admin/announcement-delete" method="POST">
                 <div class="submit-btn">
-                  <input type=text id="ann-id" name="ann-id" value="<%= post.id %>" class="form-control" style="display: none">
+                  <input type=text id="annId" name="annId" value="<%= post.id %>" class="form-control" style="display: none">
                   <input class="btn btn-outline-danger btn-sm" type="submit"  value="Delete" style="margin-top: 1.0rem;" />
                 </div>
               </form>

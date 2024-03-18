@@ -60,8 +60,11 @@ const controller = {
             for (let x = 0; x < list1.length; x++) {
                 people.push(list1[x][0]);
             }
+<<<<<<< Updated upstream
         
             console.log(people);
+=======
+>>>>>>> Stashed changes
             
             return res.render('scholarAccs', { people });  
         
@@ -80,7 +83,10 @@ const controller = {
             const acc = await pool.query(
                 `SELECT * FROM users WHERE email = $1;`, [email1]);   
             
+<<<<<<< Updated upstream
             console.log(acc.rows);
+=======
+>>>>>>> Stashed changes
             const person1 = await pool.query(
                 `SELECT * FROM users_additional_info WHERE email = $1;`, [email1]);
              
