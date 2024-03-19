@@ -5,9 +5,13 @@ const flash = require('express-flash');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer'); 
-
+//const winston = require('winston');
+const winston = require('express-winston');
+require('winston-daily-rotate-file');
+const {transports, createLogger, format} = require('winston');
 const app = express();
-
+const logger = require('../authLogger');
+const globalLogger = require('../globalLogger');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -51,6 +55,7 @@ const controller = {
         let { fname, lname, email, phone, uname, password, cpass } = req.body;
         const file = req.file;
         let errors = [];
+
 
         // ======= FILE VALIDATION ======= //
         // size check
@@ -148,61 +153,67 @@ const controller = {
         } 
         else { // successful validation
             let hashedPass = await bcrypt.hash(password, 10);
-            console.log(hashedPass);
+            //console.log(hashedPass);
             // send data to s3 bucket
             await s3.send(new PutObjectCommand(uploadParams));
     
-            pool.query(
-                `SELECT * FROM users
-                WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
-                    if (err) {
-                        console.error('Error: ', err);
-                        res.status(500).send('Internal Server Error');
-                    } else {
-                        console.log(results.rows);
-    
+            try{
+                pool.query(
+                    `SELECT * FROM users
+                    WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
+
+                     //   console.log(results.rows);
+                        logger.debug('Checking if the email or username was registered in registerUser', {RegisterCheck: results.rows})
+        
                         if (results.rows.length > 0){
                             if (results.rows[0].email === email){
                                 errors.push({ message: "Email already registered." });
+                                logger.debug('Email already registered', {RegisterCheck: results.rows[0].email})
                             }
                             if (results.rows[0].username === uname){
                                 errors.push({ message: "Username already registered." });
+                                logger.debug('Email already registered', {RegisterCheck: results.rows[0].username})
                             }
                             res.render("register", { errors });
                         } else{ // register the user
-                            // register the user in the users table
-                            pool.query(
-                                `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
-                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                                RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
-                                    if (err) {
-                                        console.error('Error: ', err);
-                                        res.status(500).send('Internal Server Error');
-                                    } else {
-                                        console.log(results.rows);
-                                    }
-                                }
-                            );
-
-                            // add the email to the users_additional_info table
-                            pool.query(
-                                `INSERT INTO users_additional_info (email)
-                                VALUES ($1)
-                                RETURNING email`, [email], (err, results)=>{
-                                    if (err) {
-                                        console.error('Error: ', err);
-                                        res.status(500).send('Internal Server Error');
-                                    } else {
-                                        console.log(results.rows);
+                            try {
+                                pool.query(
+                                    `INSERT INTO users (firstname, lastname, username, email, phonenum, profilepic, password, role)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                    RETURNING id, password`, [fname, lname, uname, email, phone, fileName, hashedPass, 'user'], (err, results)=>{
+                                        
+                                       // console.log(results.rows);
+                                        logger.debug('Registered user id and hashed password', {User: results.rows})
+                                        logger.info("Successfully registered a user");
                                         req.flash('success_msg', "You are now registered. Please log in.");
                                         res.redirect('/users/login');
                                     }
-                                }
-                            );
+                                )
+                            } catch {
+                                if (process.env.MODE == 'debug'){ 
+                                    globalLogger.error('Error occurred:', err); // Log the error
+                                    res.status(500).send('Internal Server Error');
+                                    //console.log('debug mode on')
+                                  }
+                                  else{
+                                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                                    //console.log('debug mode off')
+                                  }
+                            }
                         }
                     }
-                }
-            )
+                )
+            } catch {
+                if (process.env.MODE == 'debug'){ 
+                    globalLogger.error('Error occurred:', err); // Log the error
+                    res.status(500).send('Internal Server Error');
+                    //console.log('debug mode on')
+                  }
+                  else{
+                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                    //console.log('debug mode off')
+                  }
+            }
         }
 
     },
@@ -216,6 +227,7 @@ const controller = {
     logoutUser: (req, res, next) => {
         req.logout(function(err){
             if (err) { return next(err); }
+            logger.info('User logs out')
             res.redirect("/");
         });
     },
@@ -237,17 +249,17 @@ const controller = {
             );
     
             //console.log(results.rows);
+            logger.info('User wants to reset password', {User: req.body});
     
             if (results.rows.length > 0) {
                 const pin = generateSecurePin();
                 const user = results.rows[0];
             
-                console.log(pin)
-    
+             //   console.log(pin)
+                logger.info('User is given the PIN');
+
                 // Hash the pin before it gets stored in the database
-                const hashedPin = await bcrypt.hash(pin.toString(), 10);
-    
-                console.log(hashedPin);
+                const hashedPin = await bcrypt.hash(pin.toString(), 12);
     
                 // Store hashedPin variable in the database (in the column PIN)
                 await pool.query(
@@ -259,16 +271,25 @@ const controller = {
                 sendPasswordResetEmail(email, pin);
     
                 // Redirect to enter PIN page
-                console.log("email: ", email)
+                logger.info("User will reset their password sent to their email", { email: email })
                 res.render('enter-PIN', { email: email });
     
             } else {
                 // If email not found, redirect to the password forget page 
+                logger.info("Email to change password was not found in the database", { email: email })
                 res.redirect('/users/forget-password'); 
             }
         } catch (error) {
-            console.error('Error:', error);
-            res.status(500).send('Internal Server Error');
+          //  console.error('Error:', error);
+            if (process.env.MODE == 'debug'){ 
+                globalLogger.error('Error occurred:', error); // Log the error
+                res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+            }
+            else{
+                res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+          }
         }
     },
 
@@ -277,11 +298,13 @@ const controller = {
         const { pin } = req.body;
         const email = req.body.email; //string
         let err_msg = '';
-        console.log(`Email parameter from URL: ${email}`);
+      //  console.log(`Email parameter from URL: ${email}`);
         
-        console.log(`Pin is: ${pin}`);
+      //  console.log(`Pin is: ${pin}`);
+        logger.info(`Inputted PIN by user is: ${pin}`);
     
         try {
+            logger.info(`Querying database for user with email: ${email}`);
             // Retrieve user details based on the provided PIN
             const result = await pool.query(
                 `SELECT * FROM users WHERE email = $1`,
@@ -292,36 +315,50 @@ const controller = {
                 
                 // Decrypt the stored PIN for comparison
                 const decryptedPinMatch = await bcrypt.compare(pin.toString(), user.pin);
-                console.log('here')
     
                 if (decryptedPinMatch) {
                     // Valid PIN, redirect to the reset password page
                     res.render('reset-password', { email: email });
+                    logger.info("User entered a valid PIN, will be redirected to the reset password page", {userEmail: email});
                 } else {
                     // Invalid PIN, display an error message
                     req.flash('success_msg', "Invalid PIN")
-                    console.log('invalid pin')
+                  //  console.log('invalid pin')
+                    logger.info("User entered an invalid PIN", {userEmail: email});
                     res.render('enter-PIN', { email: email });
                 }
             } else {
                 // Invalid PIN, display an error message
-                console.log('pin not found')
+            //    console.log('pin not found')
+                logger.info("PIN and User not found")
                // req.flash('error_msg',"User not found")
                req.flash('success_msg', "Invalid PIN")
                 res.render('enter-PIN', { email: email});
             }
         } catch (error) {
-            console.error('Error:', error);
-            res.status(500).send('Internal Server Error');
+         //   console.error('Error:', error);
+            if (process.env.MODE == 'debug'){ 
+                globalLogger.error('Error occurred:', error); // Log the error
+                res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+            }
+            else{
+                res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+            }
         }
     },
 
     // RESET PASSWORD
     resetPassword: async (req, res) => {
         const {email, password, cpass} = req.body
-        console.log(`Email parameter from URL: ${email}`);
-        console.log(req.body)
+      //  console.log(`Email parameter from URL: ${email}`);
+      //  console.log(req.body)
         let errors = []
+
+        const logMessage = JSON.stringify(req.body); // Convert req.body to a JSON string
+        //logger.info('User is in the Reset Password page')
+        logger.debug('User is in the Reset Password page', {userInfo: logMessage}); // Log the JSON string
     
         if(!password, !cpass){
             errors.push({message: "Please enter both fields"});
@@ -356,25 +393,44 @@ const controller = {
                 if (results.rows.length > 0){
                     const user = results.rows[0]
                     const newpassword = await bcrypt.hash(password, 10) 
-                    console.log(newpassword)
     
                     pool.query(
                         `UPDATE users SET password = $1 WHERE email = $2`,
                         [newpassword, email], (err, results)=>{
                             if (err){
-                                throw err
-                            }
-                                console.log('setting failed login attempts to 0');
+                                if (process.env.MODE == 'debug'){ 
+                                    globalLogger.error('Error occurred:', err); // Log the error
+                                    res.status(500).send('Internal Server Error');
+                                    //console.log('debug mode on')
+                                  }
+                                  else{
+                                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                                    //console.log('debug mode off')
+                                  }
+                            } else {
+                                logger.info('Setting the failed login attempts to 0 and redirecting the user to the Login page');
                                 pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
+
+                                //delete the pin from the user
+                                pool.query(`UPDATE users SET pin = NULL WHERE email = $1`, [email]);
+
                                 req.flash('success_msg', "You have changed your password. Please log in.");
                                 res.redirect('/users/login');
-                             }
+                            }
+                        }
                                 
-                        );
-                     }           
+                    );
+                }           
             } catch (err){
-                console.error('Error:', error);
-                res.status(500).send('Internal Server Error');
+                if (process.env.MODE == 'debug'){ 
+                    globalLogger.error('Error occurred:', err); // Log the error
+                    res.status(500).send('Internal Server Error');
+                    //console.log('debug mode on')
+                  }
+                  else{
+                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                    //console.log('debug mode off')
+                  }
             }
         }
         else{
@@ -409,9 +465,18 @@ function sendPasswordResetEmail(email, pin) {
     // Send the email
     transporter.sendMail(mailOptions, (err, info) => {
       if (err) {
-        console.error('Error sending email:', err);
+        if (process.env.MODE == 'debug'){ 
+            globalLogger.error('Error occurred:', err); // Log the error
+            res.status(500).send('Internal Server Error');
+            //console.log('debug mode on')
+          }
+          else{
+            res.status(500).send('Internal Server Error'); // Send a response to the client
+            //console.log('debug mode off')
+          }
       } else {
-        console.log('Email sent:', info.response);
+       // console.log('Email sent:', info.response);
+        logger.info('Reset Password Email sent')
       }
     });
 };

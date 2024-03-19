@@ -5,6 +5,8 @@ const flash = require('express-flash');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer'); 
+const globalLogger = require('../globalLogger');
+const logger = require('../transLogger');
 
 const app = express();
 
@@ -74,10 +76,20 @@ const controller = {
             }
             
             //console.log(applications);
+            logger.debug('List of scholarship renewal applications', {info:applications})
             return res.render('userRenew', { applications });
         } catch (error) {
-            console.error('Error fetching applications: ', error);
-            return res.status(500).send('Internal Server Error');
+            if (process.env.MODE == 'debug'){ 
+                globalLogger.error('Error fetching applications:', error); // Log the error
+                return res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+              }
+              else{
+                return res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+              }
+           // console.error('Error fetching applications: ', error);
+            //return res.status(500).send('Internal Server Error');
         }
     },
 
@@ -95,10 +107,12 @@ const controller = {
                     console.error('Error: ', err);
                     res.status(500).send('Internal Server Error');
                 } else {
-                    console.log(results.rows);
+                    //console.log(results.rows);
+                    logger.debug('Scholarship renewal application to be deleted', {info:results.rows})
                     
                     if (results.rows.length === 0){
-                        console.log("Selected application cannot be deleted anymore.");
+                        //console.log("Selected application cannot be deleted anymore.");
+                        logger.info("Selected application cannot be deleted anymore in deleteRenewalApp.");
                     } else { // application still has 'Pending' status
                         pool.query(
                             `UPDATE scholar_renewal_applications
@@ -106,10 +120,20 @@ const controller = {
                             WHERE id = $2
                             RETURNING *`, ['Deleted', appId], (err, results)=>{
                                 if (err) {
-                                    console.error('Error: ', err);
-                                    res.status(500).send('Internal Server Error');
+                                  /*  console.error('Error: ', err);
+                                    res.status(500).send('Internal Server Error');*/
+                                    if (process.env.MODE == 'debug'){ 
+                                        globalLogger.error('Error occurred:', err); // Log the error
+                                        res.status(500).send('Internal Server Error');
+                                        //console.log('debug mode on')
+                                      }
+                                      else{
+                                        res.status(500).send('Internal Server Error'); // Send a response to the client
+                                        //console.log('debug mode off')
+                                      }
                                 } else {
-                                    console.log(results.rows);
+                                    //console.log(results.rows);
+                                    logger.debug('Info of deleted scholarship renewal application', {info:results.rows})
                                     return res.redirect('/users/renew-scholarship');
                                 }
                             }
@@ -138,11 +162,13 @@ const controller = {
         const maxSize = 1024 * 1024 * 1; // 1 for 1mb
         if (eaf_file.size > maxSize || grades_file.size > maxSize){
             errors.push({ message: "Max upload size 1MB." });
+            logger.info('User tried to upload a file larger than 1MB in applyRenewal')
         }
 
         // extention based file type check
         if (eaf_file.mimetype != "application/pdf" || grades_file.mimetype != "application/pdf"){
             errors.push({ message: "Files are not a .PDF file." });
+            logger.info('User did not upload a .PDF file, checked via extension in applyRenewal')
         }
 
         // file siggy based file type check
@@ -153,6 +179,7 @@ const controller = {
         const pdfNum = "25504446";
         if (eaf_magicNum !== pdfNum || grades_magicNum !== pdfNum){
             errors.push({ message: ".PDF files only." });
+            logger.info('User did not upload a .PDF file, checked via file signature in applyRenewal')
         }
 
         if (errors.length > 0){
@@ -192,11 +219,21 @@ const controller = {
                     }
                 }
                 
-                console.log('ERRORS: ', errors);
+                //console.log('ERRORS: ', errors);
+                globalLogger.error('ERRORS:', errors); // Log the error
                 return res.render('userRenew', { applications, errors });
             } catch (error) {
-                console.error('Error fetching applications: ', error);
-                return res.status(500).send('Internal Server Error');
+                if (process.env.MODE == 'debug'){ 
+                    globalLogger.error('Error fetching applications:', error); // Log the error
+                    return res.status(500).send('Internal Server Error');
+                    //console.log('debug mode on')
+                  }
+                  else{
+                    return res.status(500).send('Internal Server Error'); // Send a response to the client
+                    //console.log('debug mode off')
+                  }
+                //console.error('Error fetching applications: ', error);
+                //return res.status(500).send('Internal Server Error');
             }
         } else {
             // config the upload details to send to s3
@@ -227,10 +264,20 @@ const controller = {
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING *`, [req.user.email, date, eafName, gradesName, 'Pending'], (err, results)=>{
                     if (err) {
-                        console.error('Error: ', err);
-                        res.status(500).send('Internal Server Error');
+                        if (process.env.MODE == 'debug'){ 
+                            globalLogger.error('Error:', err); // Log the error
+                            res.status(500).send('Internal Server Error');
+                            //console.log('debug mode on')
+                          }
+                          else{
+                            res.status(500).send('Internal Server Error'); // Send a response to the client
+                            //console.log('debug mode off')
+                          }
+                     //   console.error('Error: ', err);
+                     //   res.status(500).send('Internal Server Error');
+                        
                     } else {
-                        console.log(results.rows);
+                        logger.info('User applied for scholarship renewal', {userEmail: req.user.email})
                         return res.redirect('/users/renew-scholarship');
                     }
                 }

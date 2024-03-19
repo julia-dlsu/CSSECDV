@@ -5,6 +5,8 @@ const flash = require('express-flash');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer'); 
+const globalLogger = require('../globalLogger');
+const logger = require('../adminLogger');
 
 const app = express();
 

@@ -5,6 +5,8 @@ const flash = require('express-flash');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer'); 
+const globalLogger = require('../globalLogger');
+const logger = require('../adminLogger');
 
 const app = express();
 
@@ -79,7 +81,7 @@ const controller = {
                 }
             }
             
-            //console.log(applications);
+        
             return res.render('adminRenew', { applications });
         } catch (error) {
             console.error('Error fetching applications: ', error);
@@ -90,6 +92,7 @@ const controller = {
     // APPROVE RENEWAL APPLICATION
     approveRenewApp: async (req, res)=>{   
         try{
+            let errors = []
             id = req.body['app_id'];
 
             buffer1 = req.file.buffer
@@ -97,9 +100,62 @@ const controller = {
             const pdfNum = "25504446"
 
             if (magicNum !== pdfNum){
-                console.log(".PDF files only.");
+                errors.push({message: ".PDF files only."});
             }
+
+            const maxSize = 1024 * 1024 * 1; // 1 for 1mb
+            if (req.file.size > maxSize ){
+                errors.push({ message: "Max upload size 1MB." });
+            }
+
+            if (errors.length> 0 ){
+                try {
+                    const results = await pool.query(
+                        `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.eaf as eaf, sra.grades as grades, sra.approve_document as approve_document, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, sra.status as status
+                        FROM users u
+                        JOIN users_additional_info uai ON u.email = uai.email
+                        JOIN scholar_renewal_applications sra ON u.email = sra.email
+                        WHERE sra.status = 'Pending'`);
+                    
+                    const applications = results.rows;
+        
+                    for (let i = 0; i < applications.length; i++){
+                        if (applications[i].eaf != null && applications[i].grades != null){
+                            const getEAFParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].eaf,
+                            }
+                            const eaf_command = new GetObjectCommand(getEAFParams);
+                            const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+                            applications[i].eaf = eaf_url
             
+                            const getGradesParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].grades,
+                            }
+                            const grades_command = new GetObjectCommand(getGradesParams);
+                            const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+                            applications[i].grades = grades_url
+                        }
+                
+                        if (applications[i].approve_document != null){
+                            const getApproveParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].approve_document,
+                            }
+                            const approve_command = new GetObjectCommand(getApproveParams);
+                            const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                            applications[i].approve_document = approve_url
+                        }
+                    }
+                    
+                    return res.render('adminRenew', { applications, errors });
+                } catch (error) {
+                    console.error('Error fetching applications: ', error);
+                    return res.status(500).send('Internal Server Error');
+                }
+            }
+
             if (buffer1 != null){
             
                 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
@@ -221,7 +277,6 @@ const controller = {
                 }
             }
             
-            //console.log(applications);
             return res.render('approvedRenewals', { applications });
         } catch (error) {
             console.error('Error fetching applications: ', error);
@@ -262,7 +317,7 @@ const controller = {
                 }
             }
             
-            //console.log(applications);
+    
             return res.render('rejectedRenewals', { applications });
         } catch (error) {
             console.error('Error fetching applications: ', error);

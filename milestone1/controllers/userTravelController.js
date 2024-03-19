@@ -5,6 +5,8 @@ const flash = require('express-flash');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const nodemailer = require('nodemailer'); 
+const globalLogger = require('../globalLogger');
+const logger = require('../transLogger');
 
 const app = express();
 
@@ -82,9 +84,13 @@ const controller = {
             }
             
             //console.log(applications);
+            logger.debug('List of travel budget applications', {info: applications})
             return res.render('userTravel', { applications });
         } catch (error) {
-            console.error('Error fetching applications: ', error);
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error fetching applications: ', error);
+            }
+            //console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
     },
@@ -103,21 +109,26 @@ const controller = {
                     console.error('Error: ', err);
                     res.status(500).send('Internal Server Error');
                 } else {
-                    console.log(results.rows);
+                    logger.info('List of Travel Budget Applications', {info:results.rows});
                     
                     if (results.rows.length === 0){
-                        console.log("Selected application cannot be deleted anymore.");
+                        logger.info("Selected application cannot be deleted anymore.");
                     } else { // application still has 'Pending' status
+                        logger.info("User tries to delete travel application.");
                         pool.query(
                             `UPDATE travel_clearance_applications
                             SET status = $1
                             WHERE id = $2
                             RETURNING *`, ['Deleted', appId], (err, results)=>{
                                 if (err) {
-                                    console.error('Error: ', err);
+                                    if (process.env.MODE == 'debug'){
+                                        globalLogger.error('Error: ', err);
+                                    }
+                                  //  console.error('Error: ', err);
                                     res.status(500).send('Internal Server Error');
                                 } else {
-                                    console.log(results.rows);
+                                   // console.log(results.rows);
+                                   logger.debug('Info of deleted travel application', {info:results.rows})
                                     return res.redirect('/users/travel-abroad');
                                 }
                             }
@@ -147,6 +158,8 @@ const controller = {
         const maxSize = 1024 * 1024 * 1; // 1 for 1mb
         if (loi_file.size > maxSize || dou_file.size > maxSize || itr_file.size > maxSize){
             errors.push({ message: "Max upload size 1MB." });
+            logger.info('User tried to upload a file larger than 1MB in applyTravel')
+        
         }
 
         //console.log('test: ', req.files)
@@ -154,6 +167,7 @@ const controller = {
         // extention based file type check
         if (loi_file.mimetype != "application/pdf" || dou_file.mimetype != "application/pdf" || itr_file.mimetype != "application/pdf"){
             errors.push({ message: "Files are not a .PDF file." });
+            logger.info('User did not upload a .PDF file, checked via extension in applyTravel')
         }
 
         // file siggy based file type check
@@ -168,6 +182,7 @@ const controller = {
 
         if (loi_magicNum !== pdfNum || dou_magicNum !== pdfNum || its_magicNum !== pdfNum){
             errors.push({ message: ".PDF files only." });
+            logger.info('User did not upload a .PDF file, checked via file signature in applyTravel')
         }
 
         if (errors.length > 0){
@@ -218,7 +233,10 @@ const controller = {
                 console.log('ERRORS: ', errors);
                 return res.render('userTravel', { applications, errors });
             } catch (error) {
-                console.error('Error fetching applications: ', error);
+                if (process.env.MODE == 'debug'){
+                    globalLogger.error('Error fetching applications: ', error);
+                }
+                //console.error('Error fetching applications: ', error);
                 return res.status(500).send('Internal Server Error');
             }
         } else {
@@ -260,10 +278,14 @@ const controller = {
                 VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *`, [req.user.email, date, loiName, douName, itrName, 'Pending'], (err, results)=>{
                     if (err) {
-                        console.error('Error: ', err);
+                        if (process.env.MODE == 'debug'){
+                            globalLogger.error('Error fetching applications: ', err);
+                        }
+                        //console.error('Error: ', err);
                         res.status(500).send('Internal Server Error');
                     } else {
-                        console.log(results.rows);
+                        //console.log(results.rows);
+                        logger.debug('Successful Travel Budget Application (Queried data inserted to travel_clearance_applications in applyTravel)', {info: results.rows})
                         return res.redirect('/users/travel-abroad');
                     }
                 }

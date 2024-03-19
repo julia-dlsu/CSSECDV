@@ -1,12 +1,16 @@
 const LocalStrategy = require("passport-local").Strategy;
 const { pool } = require("./models/dbConfig");
 const bcrypt = require("bcrypt");
+const winston = require('express-winston');
+require('winston-daily-rotate-file');
+const {transports, createLogger, format} = require('winston');
+const logger = require('./authLogger');
 
 function initialize(passport) {
   console.log("Initialized");
 
   const authenticateUser = (email, password, done) => {
-    console.log(email, password);
+  //  console.log(email, password);
     pool.query(
       `SELECT * FROM users WHERE email = $1`,
       [email],
@@ -20,18 +24,29 @@ function initialize(passport) {
 
           bcrypt.compare(password, user.password, (err, isMatch) => {
             if (err) {
-              console.log(err);
+              //console.log(err);
+              if (process.env.MODE == 'debug'){ 
+                logger.error('Error occurred:', err); // Log the error
+                res.status(500).send('Internal Server Error');
+                //console.log('debug mode on')
+              }
+              else{
+                res.status(500).send('Internal Server Error'); // Send a response to the client
+                //console.log('debug mode off')
+              }
             }
             if (isMatch) {
               //reset failed_login_attempt
               pool.query(`UPDATE users SET failed_login_attempts = 0, last_login = NOW() WHERE email = $1`, [email]);
-              console.log('successful login attempt')
+          //    console.log('successful login attempt')
+              logger.info('Successful login attempt')
               return done(null, user);
             } else {
               //password is incorrect
               //increment failed_login_attempts
               pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
-              console.log('failed login attempt')
+              logger.warn('Failed login attempt')
+
               return done(null, false, { message: "Incorrect username or password." });            
         }});
         } else {
@@ -40,7 +55,9 @@ function initialize(passport) {
             message: "Incorrect username or password."
           });
         }
-        console.log(results.rows);
+       // console.log(results.rows);
+       const logMessage = JSON.stringify(results.rows); // Convert to a JSON string
+      logger.debug('Info of user who tried to log in',{logMessage}); // Log the JSON string
       }
     );
   };
@@ -66,7 +83,7 @@ function initialize(passport) {
       if (err) {
         return done(err);
       }
-      console.log(`ID is ${results.rows[0].id}`);
+    //  console.log(`ID is ${results.rows[0].id}`);
       return done(null, results.rows[0]);
     });
   });
