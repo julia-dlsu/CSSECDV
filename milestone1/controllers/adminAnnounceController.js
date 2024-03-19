@@ -70,13 +70,16 @@ const controller = {
             return res.render('adminDashboard', data);
             
         } catch (err) {
-            console.error('Error:', err);
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error:', err)
+            }
             res.status(500).send('Internal Server Error');
         }
     },
 
     // LOAD ADMIN OWN ANNOUNCEMENTS
     getAdminAnnouncements: async (req, res)=>{
+
         try{
             const posts = []
             const post1 = await pool.query(
@@ -105,9 +108,13 @@ const controller = {
             } 
 
             return res.render('adminAnnouncements', data);
+
             
         } catch (err) {
-            console.error('Error:', err);
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error:', err)
+            }
+          //  console.error('Error:', err);
             res.status(500).send('Internal Server Error');
         }
     },
@@ -129,11 +136,13 @@ const controller = {
         const titleregex = /^[a-zA-Z0-9.,!?&%#$@:;*\-+=\s]{1,64}$/;;
         if (!(titleregex.test(title))){
             errors.push({ message: "Invalid title input." });
+            logger.info('Admin inputted an invalid title in Announcements')
         }
 
         const announcementregex = /^[a-zA-Z0-9.,!?&%#$@:;*\-+=\s]{1,500}$/;;
         if (!(announcementregex.test(announcement))){
             errors.push({ message: "Invalid text input." });
+            logger.info('Admin inputted an invalid body of text in Announcements')
         }
 
         if (errors.length > 0){
@@ -147,17 +156,22 @@ const controller = {
                     `INSERT INTO admin_announcement (dateposted, posted_by, title, announcement)
                     VALUES ($1,$2,$3,$4);`, [date, admin, title, announcement],(err, results)=>{
                         if (err){
-                            console.error('Error:', err);
+                            if (process.env.MODE == 'debug'){
+                                globalLogger.error('Error:', err)
+                            }
                             res.status(500).send('Internal Server Error');
                         }
                         else{
                         req.flash('success_msg', "Announcement Added");
+                        logger.debug('Successful announcement by admin', {info: req.body})
                         return res.redirect('/admin/dashboard');
                         }
                     }
                 )
             } catch (err) {
-                console.error('Error:', err);
+                if (process.env.MODE == 'debug'){
+                    globalLogger.error('Error:', err)
+                }
                 res.status(500).send('Internal Server Error');
             }
         }
@@ -174,22 +188,28 @@ const controller = {
             date = month +"-"+ day +"-"+ year 
 
             id = req.body.annId;
+            logger.info('Delete announcement request', {info: req.body})
             pool.query(
                 `UPDATE admin_announcement
                  SET deleted = True, dateDeleted = $1
                  WHERE id = $2;`, [date, id],(err, results)=>{
                     if (err){
-                        console.error('Error:', err);
+                        if (process.env.MODE == 'debug'){
+                            globalLogger.error('Error:', err)
+                        }
                         res.status(500).send('Internal Server Error');
                     }
                     else{
                     req.flash('success_msg', "Announcement Deleted");
+                    logger.info('Successful announcement deletion by admin')
                     return res.redirect('/admin/dashboard');
                     }
                 }
             )
         } catch (err) {
-            console.error('Error:', err);
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error:', err)
+            }
             res.status(500).send('Internal Server Error');
         }
 

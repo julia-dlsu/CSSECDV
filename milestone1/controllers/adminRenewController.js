@@ -84,7 +84,10 @@ const controller = {
         
             return res.render('adminRenew', { applications });
         } catch (error) {
-            console.error('Error fetching applications: ', error);
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error fetching applications: ', error);
+            }
+          //  console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
     },

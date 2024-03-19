@@ -83,11 +83,11 @@ app.use((req, res, next) => {
       return next();
     }
 
-    // FOR IDLE TIMEOUT (needs testing for admin)
+    // FOR IDLE TIMEOUT
     if (req.session && req.session.lastActivity) {
       // for idle timeout
       const currentTime = new Date().getTime();
-      const idleTimeout = 5 * 60 * 1000;
+      const idleTimeout = 15 * 60 * 1000;
       idleTime = currentTime - req.session.lastActivity;
       //logger.debug('idle time: ', idleTime)
 
@@ -132,7 +132,6 @@ app.use((req, res, next) => {
 app.use('/update-session-activity', (req, res, next) => {
   if (req.session) {
     req.session.lastActivity = new Date().getTime();
-   // console.log('last activity 3: ', req.session.lastActivity)
    logger.debug('last activity by user', { lastActivity: req.session.lastActivity });
   }
   next();

@@ -145,6 +145,8 @@ const controller = {
         const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
         const af_file = req.file;
         let errors = [];
+        
+        logger.info('User will apply for thesis budget application')
 
         // ======= FILE VALIDATION ======= //
         // size check

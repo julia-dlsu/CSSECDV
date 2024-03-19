@@ -105,6 +105,9 @@ const controller = {
             WHERE id = $1 AND status = $2`, [appId, 'Pending'], (err, results)=>{
                 if (err) {
                     console.error('Error: ', err);
+                    if (process.env.MODE == 'debug'){ 
+                        globalLogger.error('Error occurred:', err);
+                    }
                     res.status(500).send('Internal Server Error');
                 } else {
                     //console.log(results.rows);

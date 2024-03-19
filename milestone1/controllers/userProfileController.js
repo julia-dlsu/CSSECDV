@@ -69,6 +69,7 @@ const controller = {
         }
         const command = new GetObjectCommand(getObjectParams);
         const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+        //console.log(req.user.email)
 
         pool.query(
             `SELECT * FROM users_additional_info
@@ -198,14 +199,17 @@ const controller = {
         // check that there are no empty inputs
         if (!univ || !degree) {
             errors.push({ message: "Please enter all fields." });
+            logger.info('User left empty inputs')
         }
 
         const regex = /^[ a-zA-Z0-9.,!?&%#@:;*\-+=]{1,64}$/;
         if (!(regex.test(univ))){
             errors.push({ message: "Invalid university input" });
+            logger.info('User did not input a valid university input')
         }
         if (!(regex.test(degree))){
             errors.push({ message: "Invalid degree input" });
+            logger.info('User did not input a valid degree input')
         }
 
         // ======= PSQL ======= //
@@ -225,7 +229,7 @@ const controller = {
                         res.status(500).send('Internal Server Error');
                     } else {
                         console.log(results.rows);
-                        logger.debug('Updated user query from updateProfileInformation', {user:results.rows})
+                        logger.debug('Updated user information', {user:results.rows})
                         return res.redirect('/users/profile');
                     }
                 }
@@ -306,7 +310,7 @@ const controller = {
                                         res.status(500).send('Internal Server Error');
                                     } else {
                                         //console.log(results.rows);
-                                        logger.debug('Queried information from updating users_additional_info on completeProfileInformation', {info: results.rows})
+                                        logger.debug('User successfully completed their profile information', {info: results.rows})
                                         return res.redirect('/users/profile');
                                     }
                                 }
