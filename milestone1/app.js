@@ -52,15 +52,6 @@ app.use(flash());
 //Logging
 app.use(winston.logger({
   transports: [
-    //new transports.Console(), 
-/*    new transports.File({
-      filename: 'logErrors.log',
-      level: 'error'
-    }), 
-    new transports.File({
-      filename: 'info_logs.log', 
-      level: 'info'
-    }),*/
     new dailyRotateFile({ //allows for a different log file per day
       filename: 'info_logs-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
@@ -108,6 +99,7 @@ app.use((req, res, next) => {
           } else {
             const sidToDelete = req.sessionID;
             const deleteQuery = 'DELETE FROM session WHERE sid = $1';
+            logger.debug('Deleting session record', {sid: sidToDelete});
             pool.query(deleteQuery, [sidToDelete], (deleteErr, deleteResult) => {
               if (deleteErr) {
                 logger.error('Error deleting session record:', deleteErr);
@@ -140,7 +132,7 @@ app.use('/update-session-activity', (req, res, next) => {
   if (req.session) {
     req.session.lastActivity = new Date().getTime();
    // console.log('last activity 3: ', req.session.lastActivity)
-   logger.debug('last activity 3:', { lastActivity: req.session.lastActivity });
+   logger.debug('last activity by user', { lastActivity: req.session.lastActivity });
   }
   next();
 });
@@ -176,8 +168,6 @@ app.use((error, req, res, next) => {
   }
 
 });
-
-
 
 // serve static files
 app.use(express.static('public'));

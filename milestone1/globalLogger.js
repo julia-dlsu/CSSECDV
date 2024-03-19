@@ -6,7 +6,7 @@ const customLogger = createLogger({
         filename: 'logErrors.log', level: 'error'
     }),
     new transports.File({ 
-        filename: 'debug_logs.log', level: 'debug' 
+        filename: 'debug_logs.log', level: 'debug'  
     })
   ],
   format: format.combine(

@@ -45,7 +45,6 @@ function initialize(passport) {
               //password is incorrect
               //increment failed_login_attempts
               pool.query(`UPDATE users SET failed_login_attempts = failed_login_attempts + 1, last_login = NOW() WHERE email = $1`, [email]); 
-           //   console.log('failed login attempt')
               logger.warn('Failed login attempt')
 
               return done(null, false, { message: "Incorrect username or password." });            
@@ -58,7 +57,7 @@ function initialize(passport) {
         }
        // console.log(results.rows);
        const logMessage = JSON.stringify(results.rows); // Convert to a JSON string
-      logger.debug('Info of user who logged in',{logMessage}); // Log the JSON string
+      logger.debug('Info of user who tried to log in',{logMessage}); // Log the JSON string
       }
     );
   };

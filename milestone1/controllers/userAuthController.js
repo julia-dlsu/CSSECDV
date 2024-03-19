@@ -56,6 +56,7 @@ const controller = {
         const file = req.file;
         let errors = [];
 
+
         // ======= FILE VALIDATION ======= //
         // size check
         const maxSize = 1024 * 1024 * 1; // 1 for 1mb
@@ -162,14 +163,16 @@ const controller = {
                     WHERE email = $1 OR username = $2`, [email, uname], (err, results)=>{
 
                      //   console.log(results.rows);
-                        logger.debug('Checking if the email or username was registerd', {RegisterCheck: results.rows})
+                        logger.debug('Checking if the email or username was registered', {RegisterCheck: results.rows})
         
                         if (results.rows.length > 0){
                             if (results.rows[0].email === email){
                                 errors.push({ message: "Email already registered." });
+                                logger.debug('Email already registered', {RegisterCheck: results.rows[0].email})
                             }
                             if (results.rows[0].username === uname){
                                 errors.push({ message: "Username already registered." });
+                                logger.debug('Email already registered', {RegisterCheck: results.rows[0].username})
                             }
                             res.render("register", { errors });
                         } else{ // register the user
@@ -201,8 +204,15 @@ const controller = {
                     }
                 )
             } catch {
-                console.error('Error:', err);
-                res.status(500).send('Internal Server Error');
+                if (process.env.MODE == 'debug'){ 
+                    globalLogger.error('Error occurred:', err); // Log the error
+                    res.status(500).send('Internal Server Error');
+                    //console.log('debug mode on')
+                  }
+                  else{
+                    res.status(500).send('Internal Server Error'); // Send a response to the client
+                    //console.log('debug mode off')
+                  }
             }
         }
 
@@ -239,7 +249,7 @@ const controller = {
             );
     
             //console.log(results.rows);
-            logger.info('User wants to reset password');
+            logger.info('User wants to reset password', {User: req.body});
     
             if (results.rows.length > 0) {
                 const pin = generateSecurePin();
@@ -261,11 +271,12 @@ const controller = {
                 sendPasswordResetEmail(email, pin);
     
                 // Redirect to enter PIN page
-                logger.info("User will reset their password with the email: ", { email: email })
+                logger.info("User will reset their password sent to their email", { email: email })
                 res.render('enter-PIN', { email: email });
     
             } else {
                 // If email not found, redirect to the password forget page 
+                logger.info("Email to change password was not found in the database", { email: email })
                 res.redirect('/users/forget-password'); 
             }
         } catch (error) {
@@ -293,6 +304,7 @@ const controller = {
         logger.info(`Inputted PIN by user is: ${pin}`);
     
         try {
+            logger.info(`Querying database for user with email: ${email}`);
             // Retrieve user details based on the provided PIN
             const result = await pool.query(
                 `SELECT * FROM users WHERE email = $1`,
@@ -307,12 +319,12 @@ const controller = {
                 if (decryptedPinMatch) {
                     // Valid PIN, redirect to the reset password page
                     res.render('reset-password', { email: email });
-                    logger.info("User entered a valid PIN, will be redirected to the reset password page");
+                    logger.info("User entered a valid PIN, will be redirected to the reset password page", {userEmail: email});
                 } else {
                     // Invalid PIN, display an error message
                     req.flash('success_msg', "Invalid PIN")
                   //  console.log('invalid pin')
-                    logger.info("User entered an invalid PIN")
+                    logger.info("User entered an invalid PIN", {userEmail: email});
                     res.render('enter-PIN', { email: email });
                 }
             } else {
@@ -345,8 +357,8 @@ const controller = {
         let errors = []
 
         const logMessage = JSON.stringify(req.body); // Convert req.body to a JSON string
-        logger.info('Reset password page')
-        logger.debug('Request to change to reset password', {logMessage: logMessage}); // Log the JSON string
+        //logger.info('User is in the Reset Password page')
+        logger.debug('User is in the Reset Password page', {userInfo: logMessage}); // Log the JSON string
     
         if(!password, !cpass){
             errors.push({message: "Please enter both fields"});
@@ -453,8 +465,15 @@ function sendPasswordResetEmail(email, pin) {
     // Send the email
     transporter.sendMail(mailOptions, (err, info) => {
       if (err) {
-        console.error('Error sending email:', err);
-        globalLogger.error('Error sending email:', err);
+        if (process.env.MODE == 'debug'){ 
+            globalLogger.error('Error occurred:', err); // Log the error
+            res.status(500).send('Internal Server Error');
+            //console.log('debug mode on')
+          }
+          else{
+            res.status(500).send('Internal Server Error'); // Send a response to the client
+            //console.log('debug mode off')
+          }
       } else {
        // console.log('Email sent:', info.response);
         logger.info('Reset Password Email sent')
