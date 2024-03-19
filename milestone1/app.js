@@ -11,6 +11,10 @@ const {transports, createLogger, format} = require('winston');
 const logger = require('./globalLogger');
 require("dotenv").config();
 
+const fs = require('fs')
+const key = fs.readFileSync('./private.key')
+const cert = fs.readFileSync('./certificate.crt')
+
 const initializePassport = require('./passportConfig');
 initializePassport(passport);
 
@@ -176,6 +180,9 @@ app.use(express.static(__dirname + "/public"));
 // routes imports
 const routes = require('./routes/index');
 app.use('/', routes);
+
+const https = require('https')
+const server = https.createServer({ key, cert }, app)
 
 app.listen(PORT, ()=>{
     console.log(`Server running on port ${PORT}`);
