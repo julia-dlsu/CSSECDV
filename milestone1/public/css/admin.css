@@ -1,0 +1,120 @@
+.bg {
+    background-size: cover;
+    background: linear-gradient(rgba(0, 0, 0, 0.9),
+    rgba(0, 0, 0, 0.5));
+    position: relative;
+    background-position: center;
+    /* background-repeat: none; */
+    background-size: cover;
+    min-height: 100vh;
+}
+
+.navbar {
+    /* opacity: 0% !important; */
+    padding-left: 2% !important;
+    padding-right: 2% !important;
+    padding-top: 1% !important;
+    padding-bottom: 1% !important;
+}
+
+.social {
+    padding: 8px;
+}
+
+.light-font {
+    color: whitesmoke !important;
+}
+
+.thick {
+    font-weight: bold;
+}
+
+.main-body {
+    padding-bottom: 10% !important;
+    padding-left: 15% !important;
+    padding-right: 15% !important;
+}
+
+.card-title {
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    height: 1.5rem;
+    color: #0000008C !important;
+}
+
+.card-subtitle {
+    font-size: 0.9rem;
+    overflow: hidden !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.card-footer {
+    font-size: 0.8rem;
+    overflow: hidden !important;
+}
+
+a:link {
+    text-decoration: none;
+}
+
+a:hover {
+    color: black;
+    text-decoration: none;
+}
+
+.univ {
+    margin-bottom: 0.6rem;
+    overflow: hidden !important;
+}
+
+.card-img-top {
+    object-fit: cover;
+}
+
+img {
+    max-height: 15rem;
+}
+
+.card-link {
+    font-size: 0.9rem;
+}
+
+.btn-margin {
+    margin-bottom: 0.6rem;
+}
+
+.link-container {
+    margin-top: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.card-text {
+    font-size: 0.9rem;
+    margin-bottom: 0.0rem !important;
+}
+
+.invalid-msg {
+	color: red;
+	font-size: 90%;
+}
+
+.container-margin {
+    margin-bottom: 1.0rem;
+}
+
+.Rejected {
+    color: red;
+}
+
+.Approved {
+    color: green;
+}
+
+.Pending {
+    color: orange;
+}
+
+.remove {
+    padding: 0rem !important;
+}

@@ -40,7 +40,7 @@ function initialize(passport) {
             message: "Incorrect username or password."
           });
         }
-        //console.log(results.rows);
+        console.log(results.rows);
       }
     );
   };
@@ -66,7 +66,7 @@ function initialize(passport) {
       if (err) {
         return done(err);
       }
-      //console.log(`ID is ${results.rows[0].id}`);
+      console.log(`ID is ${results.rows[0].id}`);
       return done(null, results.rows[0]);
     });
   });

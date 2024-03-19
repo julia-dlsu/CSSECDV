@@ -30,9 +30,7 @@
                     <div class="col mb-1">
                         <div class="card h-100">
                             <div class="card-body">
-                                <!-- makes the card clickable -->
-                                <!-- [TODO] turn into /admin/scholars/:id -->
-                                <a href="/admin/scholars/<%=person.email %>"><h5 class="card-title"><%= person.account_name %></h5></a>
+                                <a href="/admin/scholars/<%=person.id %>"><h5 class="card-title"><%= person.fullname %></h5></a>
                                 <h6 class="card-subtitle text-muted"><%= person.scholar_type %></h6>
                             </div>
                             <div class="card-footer"> 

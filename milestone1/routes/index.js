@@ -164,10 +164,8 @@ router.post('/admin/announcement-delete', checkNotAuthenticatedAdmin, adminAnnou
 // render admin scholars
 router.get('/admin/scholars', checkNotAuthenticatedAdmin, adminScholarController.getScholarAccs);
 // render admin scholars profile
-// [TODO] turn into /admin/scholars/:id
-router.get('/admin/scholars/:email', checkNotAuthenticatedAdmin, adminScholarController.getScholarProfile);
+router.get('/admin/scholars/:id', checkNotAuthenticatedAdmin, adminScholarController.getScholarProfile);
 // verify admin scholars profile
-// [TODO] turn into /admin/scholars/:id/verify AND functionalities
 router.post('/admin/scholars/profile/verify', checkNotAuthenticatedAdmin, adminScholarController.verifyScholarAcc);
 
 

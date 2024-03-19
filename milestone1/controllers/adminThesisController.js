@@ -37,45 +37,41 @@ const controller = {
 
     // LOAD THESIS APPLICATIONS
     getThesisApps: async (req, res)=>{           
-        try{
-            let applications = [];
+        try {
             const results = await pool.query(
-                `SELECT * FROM thesis_budget_applications WHERE status = 'Pending';`); 
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as scholar, u.email as email, u.profilepic as profilepic, uai.scholar_type as type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.app_form as af , sra.approve_document as approved, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as dateSubmitted, sra.status as status
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                JOIN thesis_budget_applications sra ON u.email = sra.email
+                WHERE sra.status = 'Pending'`);
+            
+            const applications = results.rows;
 
-            const app = results.rows;
-            for (let x = 0; x < app.length; x++){
-        
-                const user = await pool.query(
-                    `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
-
-                const info = await pool.query(
-                    `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
-
-
-                const getObjectParams = {
-                    Bucket: bucketName,
-                    Key: app[x].app_form, 
+            for (let i = 0; i < applications.length; i++){
+                if (applications[i].af != null){
+                    const getFormParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].af,
+                    }
+                    const form_command = new GetObjectCommand(getFormParams);
+                    const form_url = await getSignedUrl(s3, form_command, { expiresIn: 3600 });
+                    applications[i].af = form_url
                 }
-                const command = new GetObjectCommand(getObjectParams);
-                const urlApp = await getSignedUrl(s3, command, { expiresIn: 3600 });
-
-                
-                removedTime = app[x].date_submitted.toISOString().split('T')[0];
-
-
-                applications.push({
-                    id: app[x].id,
-                    scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
-                    type: info.rows[0].scholar_type,
-                    school:info.rows[0].university, 
-                    af: urlApp,
-                    date: removedTime
-                })
+        
+                if (applications[i].approved != null){
+                    const getApproveParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].approved,
+                    }
+                    const approve_command = new GetObjectCommand(getApproveParams);
+                    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                    applications[i].approved = approve_url
+                }
             }
+        
             return res.render('adminThesis', { applications });
-
-        } catch (err) {
-            console.error('Error fetching applications: ', err);
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
     },
@@ -83,16 +79,63 @@ const controller = {
     // APPROVE THESIS APPLICATION
     approveThesisApp: async (req, res)=>{
         try{
-            id = req.body['appId'];
+            let errors = []
 
             buffer1 = req.file.buffer
             const magicNum = buffer1.toString('hex', 0, 4);
             const pdfNum = "25504446"
 
             if (magicNum !== pdfNum){
-                console.log(".PDF files only.");
+                errors.push({message: ".PDF files only."});
             }
-            
+
+            const maxSize = 1024 * 1024 * 1; // 1 for 1mb
+            if (req.file.size > maxSize ){
+                errors.push({ message: "Max upload size 1MB." });
+            }
+
+            if (errors.length> 0 ){
+                try {
+                    const results = await pool.query(
+                        `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as scholar, u.email as email, u.profilepic as profilepic, uai.scholar_type as type, uai.university as school, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.app_form as af, sra.approve_document as approved, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as dateSubmitted, sra.status as status
+                        FROM users u
+                        JOIN users_additional_info uai ON u.email = uai.email
+                        JOIN thesis_budget_applications sra ON u.email = sra.email
+                        WHERE sra.status = 'Pending'`);
+                    
+                    const applications = results.rows;
+
+        
+                    for (let i = 0; i < applications.length; i++){
+                        if (applications[i].af != null){
+                            const getFormParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].af,
+                            }
+                            const form_command = new GetObjectCommand(getFormParams);
+                            const form_url = await getSignedUrl(s3, form_command, { expiresIn: 3600 });
+                            applications[i].af = form_url
+
+                        }
+                
+                        if (applications[i].approved != null){
+                            const getApproveParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].approved,
+                            }
+                            const approve_command = new GetObjectCommand(getApproveParams);
+                            const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                            applications[i].approved = approve_url
+                        }
+                    }
+                    
+                    return res.render('adminThesis', { applications, errors });
+                } catch (error) {
+                    console.error('Error fetching applications: ', error);
+                    return res.status(500).send('Internal Server Error');
+                }
+            }
+
             if (buffer1 != null){
             
                 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
@@ -112,14 +155,16 @@ const controller = {
                 const day = today.getDate();
                 const month = today.getMonth() + 1; 
                 const year = today.getFullYear();
-                date = month +"-"+ day +"-"+ year 
-            
+                date = year +"-"+ month +"-"+ day 
                 
                 admin = req.user.username;
+                id = req.body['appId']
+
+
                 pool.query(
                     `UPDATE thesis_budget_applications
                     SET status = 'Approved', approve_document = $1, checked_by = $3, date_status_changed = $4 
-                    WHERE id = $2;`,[fileName, id, admin, date],(err, results)=>{
+                    WHERE id = $2;`,[fileName, id , admin, date],(err, results)=>{
                         if (err){
                             console.error('Error:', err);
                             res.status(500).send('Internal Server Error');
@@ -143,19 +188,19 @@ const controller = {
     rejectThesisApp: async (req, res)=>{
         try{
             id = req.body['appId'];
-    
+
             const today = new Date();
             const day = today.getDate();
             const month = today.getMonth() + 1; 
             const year = today.getFullYear();
             date = month +"-"+ day +"-"+ year
-    
+
             admin = req.user.username
         
             pool.query(
                 `UPDATE thesis_budget_applications
-                 SET status = 'Rejected', checked_by = $2, date_status_changed = $3
-                 WHERE id = $1;`,[id, admin, date],(err, results)=>{
+                SET status = 'Rejected', checked_by = $2, date_status_changed = $3
+                WHERE id = $1;`,[id, admin, date],(err, results)=>{
                     if (err){
                         console.error('Error:', err);
                         res.status(500).send('Internal Server Error');
@@ -166,112 +211,86 @@ const controller = {
                     }
                 }
             )
-    
-            } catch (err){
-                console.error(err)
-                res.status(500).send('Internal Server Error');
-            }
-        
+        } catch (err){
+            console.error(err)
+            res.status(500).send('Internal Server Error');
+        }
     },
 
     // LOAD APPROVED THESIS APPLICATIONS
     getApprovedThesis: async (req, res)=>{
-        try{
-            let applications = [] 
-                const results = await pool.query(
-                    `SELECT * FROM thesis_budget_applications WHERE status = 'Approved';`); 
-    
-                const app = results.rows;
-                for (let x = 0; x < app.length; x++){
+        try {
+            const results = await pool.query(
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as scholar, u.email as email, u.profilepic as profilepic, uai.scholar_type as type, uai.university as school, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.app_form as af, sra.approve_document as approved, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, TO_CHAR(sra.date_status_changed, 'YYYY-MM-DD') as date_status_changed, sra.status as status, sra.checked_by as checked_by
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                JOIN thesis_budget_applications sra ON u.email = sra.email
+                WHERE sra.status = 'Approved'`);
             
-                    const user = await pool.query(
-                        `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
-    
-                    const info = await pool.query(
-                        `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
-    
-    
-                    const getObjectParams = {
+            const applications = results.rows;
+            console.log(applications)
+
+            for (let i = 0; i < applications.length; i++){
+                if (applications[i].af != null){
+                    const getFormParams = {
                         Bucket: bucketName,
-                        Key: app[x].app_form, // file name
+                        Key: applications[i].af,
                     }
-                    const command = new GetObjectCommand(getObjectParams);
-                    const urlForm = await getSignedUrl(s3, command, { expiresIn: 3600 });
-    
+                    const form_command = new GetObjectCommand(getFormParams);
+                    const form_url = await getSignedUrl(s3, form_command, { expiresIn: 3600 });
+                    applications[i].af = form_url
+
+                }
+
+                if (applications[i].approved != null){
                     const getApproveParams = {
                         Bucket: bucketName,
-                        Key: app[x].approve_document, // [TODO]: sample only
+                        Key: applications[i].approved,
                     }
                     const approve_command = new GetObjectCommand(getApproveParams);
-                    const urlApp = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
-                
-                 
-                    removedTime = app[x].date_submitted.toISOString().split('T')[0];
-                    removedTime1 = app[x].date_status_changed.toISOString().split('T')[0];
-    
-                    applications.push({
-                        scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
-                        type: info.rows[0].scholar_type,
-                        checkedBy: app[x].checkedBy,
-                        dateApproved: removedTime1,
-                        school:info.rows[0].university, 
-                        approved: urlApp,
-                        af: urlForm,
-                        dateSubmitted: removedTime
-                    })
+                    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                    applications[i].approved = approve_url
                 }
-                return res.render('approvedThesis', { applications });
-    
-            } catch (err) {
-                console.error('Error fetching applications: ', err);
-                return res.status(500).send('Internal Server Error');
-            } 
-
+            }
+            
+            return res.render('approvedThesis', { applications });
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
+            return res.status(500).send('Internal Server Error');
+        }    
+        
     },
 
     // LOAD REJECTED THESIS APPLICATIONS
     getRejectedThesis: async (req, res)=>{
-        try{
-            let applications = [] 
+        try {
             const results = await pool.query(
-                `SELECT * FROM thesis_budget_applications WHERE status = 'Rejected';`); 
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as scholar, u.email as email, u.profilepic as profilepic, uai.scholar_type as type, uai.university as school, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.app_form as af, sra.approve_document as approved, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, TO_CHAR(sra.date_status_changed, 'YYYY-MM-DD') as date_status_changed, sra.status as status, sra.checked_by as verified_by
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                JOIN thesis_budget_applications sra ON u.email = sra.email
+                WHERE sra.status = 'Rejected'`);
+            
+            const applications = results.rows;
 
-            const app = results.rows;
-            for (let x = 0; x < app.length; x++){
-        
-                const user = await pool.query(
-                    `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
-
-                const info = await pool.query(
-                    `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
-
-                
-                const getObjectParams = {
-                    Bucket: bucketName,
-                    Key: app[x].app_form, 
+            for (let i = 0; i < applications.length; i++){
+                if (applications[i].af != null){
+                    const getFormParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].af,
+                    }
+                    const form_command = new GetObjectCommand(getFormParams);
+                    const form_url = await getSignedUrl(s3, form_command, { expiresIn: 3600 });
+                    applications[i].af = form_url
+    
                 }
-                const command = new GetObjectCommand(getObjectParams);
-                const urlForm = await getSignedUrl(s3, command, { expiresIn: 3600 });
-                 
-                
-                removedTime = app[x].date_submitted.toISOString().split('T')[0];
-                removedTime1 = app[x].date_status_changed.toISOString().split('T')[0];
-                applications.push({
-                    scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
-                    type: info.rows[0].scholar_type,
-                    checkedBy: app[x].checkedBy,
-                    dateApproved: removedTime1,
-                    school:info.rows[0].university, 
-                    af: urlForm,
-                    dateSubmitted: removedTime
-                })
             }
+              
             return res.render('rejectedThesis', { applications });
-
-        } catch (err) {
-            console.error('Error fetching applications: ', err);
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
-        }  
+        }
     
     }
     

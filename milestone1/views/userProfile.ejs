@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= scholar %></title>
+    <!-- CSS only -->
+    <link rel="stylesheet" type="text/css" href="/css/scholarProfile.css"></style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script src="https://kit.fontawesome.com/897c51c62d.js" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src = "/js/emailValidation.js"></script>
+</head>
+
+<body>
+    <div class="bg">
+		<!-- Navbar -->
+		<%- include('partials/userNavbar') %>
+
+        <!-- Profile Picture Modal -->
+        <div class="modal fade" id="exampleModal1" tabindex="-1" aria-labelledby="exampleModalLabel1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <!-- Form to apply -->
+                    <form name="update-profile-picture" action ="/users/update-profile-picture" method = "POST" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="eaf" >Upload Profile Picture</label>
+                                <input type=file accept="image/*" id="image" name="image" class="form-control btn-margin" required />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Profile Information Modal -->
+        <div class="modal fade" id="exampleModal2" tabindex="-1" aria-labelledby="exampleModalLabel2" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel">Update Educational Information</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <!-- Form to apply -->
+                    <form name="update-profile-information" action ="/users/update-profile-information" method = "POST">
+                        <div class="modal-body">
+                            <div class="form-group">	
+                                <label for = "univ">University: </label>
+                                <input type=text name = "univ" id="univ" class = "form-control" minlength = "1" maxlength = "64" placeholder="University" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "degree">Degree: </label>
+                                <input type=text name = "degree" id="degree" class = "form-control" minlength = "1" maxlength = "64" placeholder="Degree" required /> 
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Profile Information Modal -->
+        <div class="modal fade" id="exampleModal3" tabindex="-1" aria-labelledby="exampleModalLabel3" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="exampleModalLabel">Complete Scholar Information</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <!-- Form to apply -->
+                    <form name="update-profile-information" action ="/users/complete-profile-information" method = "POST">
+                        <div class="modal-body">
+                            <div class="form-group">	
+                                <label for = "scholartype">Scholarship Type*: </label>
+                                <select class="form-control" aria-label=".form-select-lg example" name = "scholartype" id="scholartype" required>
+                                    <option value="Merit" name = "scholartype" id="scholartype" class = "form-control">Merit</option>
+                                    <option value="RA 7687" name = "scholartype" id="scholartype" class = "form-control">RA 7687</option>
+                                </select>
+                            </div>
+                            <div class="form-group">	
+                                <label for = "univ">University: </label>
+                                <input type=text name = "univ" id="univ" class = "form-control" minlength = "1" maxlength = "64" placeholder="University" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "degree">Degree: </label>
+                                <input type=text name = "degree" id="degree" class = "form-control" minlength = "1" maxlength = "64" placeholder="Degree" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "accName">Landbank Account Name*: </label>
+                                <input type=text name = "accName" id="accName" class = "form-control" minlength = "1" maxlength = "64" placeholder="<%= scholar %>" required /> 
+                            </div>
+                            <div class="form-group">	
+                                <label for = "accNum">Landbank Account Number*: </label>
+                                <input type=text name = "accNum" id="accNum" class = "form-control" minlength = "1" maxlength = "64" placeholder="1234567891" required /> 
+                            </div>
+                            <div id="announcementHelpInline" class="form-text">
+                                *Please ensure that these values are correct. They cannot be changed once submitted.
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- page content: Profile -->
+        <div class="container card-container d-flex align-items-center justify-content-center">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2><%= scholar %></h2>
+                    <h6><%= email %></h6>
+                    <h6><%= phone %></h6>
+                </div>
+                <div class="card-body">
+                    <img src='<%= userpic %>' />
+                    <h5 class="card-title"><%= type %></h5>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold card-title">University:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= school %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold card-title">Degree:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= degree %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold card-title">Landbank Account Name:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= accName %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold card-title">Landbank Account Number:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= accNum %></p>
+                    </div>
+                    <div class="d-flex flex-row">
+                        <p class="fw-semibold card-title">Verified:&nbsp;&nbsp;</p>
+                        <p class="card-title"><%= verified %></p>
+                    </div>
+                    <!-- Button trigger modal -->
+                    <div>
+                        <!--Update Profile Picture -->
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal1">
+                        Update Profile Picture
+                        </button>
+                        <!--Update Information -->
+                        <% if (type != null) { %>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal2">
+                            Update Information
+                            </button>
+                        <% } else { %>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal3">
+                            Complete Information
+                            </button>
+                        <% } %>
+                    </div>
+                    <div>
+                        <ul class="invalid-msg">
+                          <% if (typeof errors != 'undefined') { %> <% errors.forEach(error => { %>
+                            <li><%= error.message %></li>
+                          <% }) %> <% } %>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Bundle with Popper -->
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+
+</body>
+</html>

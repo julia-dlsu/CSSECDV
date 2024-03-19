@@ -39,52 +39,50 @@ const controller = {
 
     // LOAD RENEWAL APPLICATIONS
     getRenewalApps: async (req, res)=>{
-        try{
-            let applications = [];
+        try {
             const results = await pool.query(
-                `SELECT * FROM scholar_renewal_applications WHERE status = 'Pending';`); 
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.eaf as eaf, sra.grades as grades, sra.approve_document as approve_document, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, sra.status as status
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                JOIN scholar_renewal_applications sra ON u.email = sra.email
+                WHERE sra.status = 'Pending'`);
+            
+            const applications = results.rows;
 
-            const app = results.rows;
-            for (let x = 0; x < app.length; x++){
+            for (let i = 0; i < applications.length; i++){
+                if (applications[i].eaf != null && applications[i].grades != null){
+                    const getEAFParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].eaf,
+                    }
+                    const eaf_command = new GetObjectCommand(getEAFParams);
+                    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+                    applications[i].eaf = eaf_url
+    
+                    const getGradesParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].grades,
+                    }
+                    const grades_command = new GetObjectCommand(getGradesParams);
+                    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+                    applications[i].grades = grades_url
+                }
         
-                const user = await pool.query(
-                    `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
-
-                const info = await pool.query(
-                    `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
-
-
-                const getObjectParams = {
-                    Bucket: bucketName,
-                    Key: app[x].eaf, 
+                if (applications[i].approve_document != null){
+                    const getApproveParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].approve_document,
+                    }
+                    const approve_command = new GetObjectCommand(getApproveParams);
+                    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                    applications[i].approve_document = approve_url
                 }
-                const command = new GetObjectCommand(getObjectParams);
-                const urlEaf = await getSignedUrl(s3, command, { expiresIn: 3600 });
-
-                const getObjectParams1 = {
-                    Bucket: bucketName,
-                    Key: app[x].grades, 
-                }
-                const command1 = new GetObjectCommand(getObjectParams1);
-                const urlGrade = await getSignedUrl(s3, command1, { expiresIn: 3600 });
-                
-                removedTime = app[x].date_submitted.toISOString().split('T')[0];
-
-
-                applications.push({
-                    id: app[x].id,
-                    scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
-                    type: info.rows[0].scholar_type,
-                    school:info.rows[0].university, 
-                    eaf: urlEaf,
-                    grades: urlGrade,
-                    date: removedTime
-                })
             }
+            
+        
             return res.render('adminRenew', { applications });
-
-        } catch (err) {
-            console.error('Error fetching applications: ', err);
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
     },
@@ -92,16 +90,70 @@ const controller = {
     // APPROVE RENEWAL APPLICATION
     approveRenewApp: async (req, res)=>{   
         try{
-            id = req.body['appId'];
+            let errors = []
+            id = req.body['app_id'];
 
             buffer1 = req.file.buffer
             const magicNum = buffer1.toString('hex', 0, 4);
             const pdfNum = "25504446"
 
             if (magicNum !== pdfNum){
-                console.log(".PDF files only.");
+                errors.push({message: ".PDF files only."});
             }
+
+            const maxSize = 1024 * 1024 * 1; // 1 for 1mb
+            if (req.file.size > maxSize ){
+                errors.push({ message: "Max upload size 1MB." });
+            }
+
+            if (errors.length> 0 ){
+                try {
+                    const results = await pool.query(
+                        `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.eaf as eaf, sra.grades as grades, sra.approve_document as approve_document, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, sra.status as status
+                        FROM users u
+                        JOIN users_additional_info uai ON u.email = uai.email
+                        JOIN scholar_renewal_applications sra ON u.email = sra.email
+                        WHERE sra.status = 'Pending'`);
+                    
+                    const applications = results.rows;
+        
+                    for (let i = 0; i < applications.length; i++){
+                        if (applications[i].eaf != null && applications[i].grades != null){
+                            const getEAFParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].eaf,
+                            }
+                            const eaf_command = new GetObjectCommand(getEAFParams);
+                            const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+                            applications[i].eaf = eaf_url
             
+                            const getGradesParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].grades,
+                            }
+                            const grades_command = new GetObjectCommand(getGradesParams);
+                            const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+                            applications[i].grades = grades_url
+                        }
+                
+                        if (applications[i].approve_document != null){
+                            const getApproveParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].approve_document,
+                            }
+                            const approve_command = new GetObjectCommand(getApproveParams);
+                            const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                            applications[i].approve_document = approve_url
+                        }
+                    }
+                    
+                    return res.render('adminRenew', { applications, errors });
+                } catch (error) {
+                    console.error('Error fetching applications: ', error);
+                    return res.status(500).send('Internal Server Error');
+                }
+            }
+
             if (buffer1 != null){
             
                 const generateFileName = (bytes = 32) => crypto.randomBytes(bytes).toString('hex');
@@ -121,8 +173,7 @@ const controller = {
                 const day = today.getDate();
                 const month = today.getMonth() + 1; 
                 const year = today.getFullYear();
-                date = month +"-"+ day +"-"+ year 
-            
+                date = year +"-"+ month +"-"+ day 
                 
                 admin = req.user.username;
                 pool.query(
@@ -152,31 +203,30 @@ const controller = {
     // REJECT RENEWAL APPLICATION
     rejectRenewApp: async (req, res)=>{
         try{
-        id = req.body['appId'];
+            id = req.body['appId'];
 
-        const today = new Date();
-        const day = today.getDate();
-        const month = today.getMonth() + 1; 
-        const year = today.getFullYear();
-        date = month +"-"+ day +"-"+ year
+            const today = new Date();
+            const day = today.getDate();
+            const month = today.getMonth() + 1; 
+            const year = today.getFullYear();
+            date = month +"-"+ day +"-"+ year
 
-        admin = req.user.username
-    
-        pool.query(
-            `UPDATE scholar_renewal_applications
-             SET status = 'Rejected', checked_by = $2, date_status_changed = $3
-             WHERE id = $1;`,[id, admin, date],(err, results)=>{
-                if (err){
-                    console.error('Error:', err);
-                    res.status(500).send('Internal Server Error');
+            admin = req.user.username
+        
+            pool.query(
+                `UPDATE scholar_renewal_applications
+                SET status = 'Rejected', checked_by = $2, date_status_changed = $3
+                WHERE id = $1;`,[id, admin, date],(err, results)=>{
+                    if (err){
+                        console.error('Error:', err);
+                        res.status(500).send('Internal Server Error');
+                    }
+                    else{
+                    req.flash('success_msg', "User Verified");
+                    return res.redirect('/admin/renew-scholarship/rejected');
+                    }
                 }
-                else{
-                req.flash('success_msg', "User Verified");
-                return res.redirect('/admin/renew-scholarship/rejected');
-                }
-            }
-        )
-
+            )
         } catch (err){
             console.error(err)
             res.status(500).send('Internal Server Error');
@@ -185,64 +235,49 @@ const controller = {
 
     // LOAD APPROVED RENEWAL APPLICATIONS
     getApprovedRenew: async (req, res)=>{
-        try{
-        let applications = [] 
+        try {
             const results = await pool.query(
-                `SELECT * FROM scholar_renewal_applications WHERE status = 'Approved';`); 
-
-            const app = results.rows;
-            for (let x = 0; x < app.length; x++){
-        
-                const user = await pool.query(
-                    `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
-
-                const info = await pool.query(
-                    `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
-
-
-                const getObjectParams = {
-                    Bucket: bucketName,
-                    Key: app[x].eaf, // file name
-                }
-                const command = new GetObjectCommand(getObjectParams);
-                const urlEaf = await getSignedUrl(s3, command, { expiresIn: 3600 });
-
-
-                const getObjectParams1 = {
-                    Bucket: bucketName,
-                    Key: app[x].grades, // file name
-                }
-                const command1 = new GetObjectCommand(getObjectParams1);
-                const urlGrade = await getSignedUrl(s3, command1, { expiresIn: 3600 });
-
-
-                const getApproveParams = {
-                    Bucket: bucketName,
-                    Key: app[x].approve_document, // [TODO]: sample only
-                }
-                const approve_command = new GetObjectCommand(getApproveParams);
-                const urlApp = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.eaf as eaf, sra.grades as grades, sra.approve_document as approve_document, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, TO_CHAR(sra.date_status_changed, 'YYYY-MM-DD') as date_status_changed, sra.status as status, sra.checked_by as checked_by
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                JOIN scholar_renewal_applications sra ON u.email = sra.email
+                WHERE sra.status = 'Approved'`);
             
-             
-                removedTime = app[x].date_submitted.toISOString().split('T')[0];
-                removedTime1 = app[x].date_status_changed.toISOString().split('T')[0];
+            const applications = results.rows;
 
-                applications.push({
-                    scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
-                    type: info.rows[0].scholar_type,
-                    checkedBy: app[x].checkedBy,
-                    dateApproved: removedTime1,
-                    school:info.rows[0].university, 
-                    eaf: urlEaf,
-                    approved: urlApp,
-                    grades: urlGrade,
-                    dateSubmitted: removedTime
-                })
+            for (let i = 0; i < applications.length; i++){
+                if (applications[i].eaf != null && applications[i].grades != null){
+                    const getEAFParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].eaf,
+                    }
+                    const eaf_command = new GetObjectCommand(getEAFParams);
+                    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+                    applications[i].eaf = eaf_url
+    
+                    const getGradesParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].grades,
+                    }
+                    const grades_command = new GetObjectCommand(getGradesParams);
+                    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+                    applications[i].grades = grades_url
+                }
+
+                if (applications[i].approve_document != null){
+                    const getApproveParams = {
+                        Bucket: bucketName,
+                        Key: applications[i].approve_document,
+                    }
+                    const approve_command = new GetObjectCommand(getApproveParams);
+                    const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                    applications[i].approve_document = approve_url
+                }
             }
+            
             return res.render('approvedRenewals', { applications });
-
-        } catch (err) {
-            console.error('Error fetching applications: ', err);
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }    
         
@@ -250,67 +285,42 @@ const controller = {
 
     // LOAD REJECTED RENEWAL APPLICATIONS
     getRejectedRenew: async (req, res)=>{
-        try{
-                let applications = [] 
-                const results = await pool.query(
-                    `SELECT * FROM scholar_renewal_applications WHERE status = 'Rejected';`); 
-    
-                const app = results.rows;
-                for (let x = 0; x < app.length; x++){
+        try {
+            const results = await pool.query(
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.eaf as eaf, sra.grades as grades, sra.approve_document as approve_document, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as date_submitted, TO_CHAR(sra.date_status_changed, 'YYYY-MM-DD') as date_status_changed, sra.status as status, sra.checked_by as checked_by
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                JOIN scholar_renewal_applications sra ON u.email = sra.email
+                WHERE sra.status = 'Rejected'`);
             
-                    const user = await pool.query(
-                        `SELECT * FROM users WHERE email = $1;`, [app[x].email]);
-    
-                    const info = await pool.query(
-                        `SELECT * FROM users_additional_info WHERE email = $1;`, [app[x].email]);
-    
-    
-                    const getObjectParams = {
-                        Bucket: bucketName,
-                        Key: app[x].eaf, 
-                    }
-                    const command = new GetObjectCommand(getObjectParams);
-                    const urlEaf = await getSignedUrl(s3, command, { expiresIn: 3600 });
-    
+            const applications = results.rows;
 
-                    const getObjectParams1 = {
+            for (let i = 0; i < applications.length; i++){
+                if (applications[i].eaf != null && applications[i].grades != null){
+                    const getEAFParams = {
                         Bucket: bucketName,
-                        Key: app[x].grades, 
+                        Key: applications[i].eaf,
                     }
-                    const command1 = new GetObjectCommand(getObjectParams1);
-                    const urlGrade = await getSignedUrl(s3, command1, { expiresIn: 3600 });
+                    const eaf_command = new GetObjectCommand(getEAFParams);
+                    const eaf_url = await getSignedUrl(s3, eaf_command, { expiresIn: 3600 });
+                    applications[i].eaf = eaf_url
     
-        
-                    const getApproveParams = {
+                    const getGradesParams = {
                         Bucket: bucketName,
-                        Key: app[x].approve_document, 
+                        Key: applications[i].grades,
                     }
-                    const approve_command = new GetObjectCommand(getApproveParams);
-                    const urlApp = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
-                     
-                    
-                    removedTime = app[x].date_submitted.toISOString().split('T')[0];
-                    removedTime1 = app[x].date_status_changed.toISOString().split('T')[0];
-    
-                    applications.push({
-                        scholar: user.rows[0].firstname + " " + user.rows[0].lastname,
-                        type: info.rows[0].scholar_type,
-                        checkedBy: app[x].checkedBy,
-                        dateApproved: removedTime1,
-                        school:info.rows[0].university, 
-                        eaf: urlEaf,
-                        approved: urlApp,
-                        grades: urlGrade,
-                        dateSubmitted: removedTime
-                    })
+                    const grades_command = new GetObjectCommand(getGradesParams);
+                    const grades_url = await getSignedUrl(s3, grades_command, { expiresIn: 3600 });
+                    applications[i].grades = grades_url
                 }
-                return res.render('rejectedRenewals', { applications });
+            }
+            
     
-            } catch (err) {
-                console.error('Error fetching applications: ', err);
-                return res.status(500).send('Internal Server Error');
-            }  
-        
+            return res.render('rejectedRenewals', { applications });
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
+            return res.status(500).send('Internal Server Error');
+        }
     }
     
 };

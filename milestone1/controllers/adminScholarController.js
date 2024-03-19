@@ -38,82 +38,59 @@ const controller = {
 
     // LOAD SCHOLAR ACCOUNTS
     getScholarAccs: async (req, res)=>{
-        // sample data only, replace when querying db
-
-        try{
-            let list1 = []
-            // get email of unverified users
-            const emails = await pool.query(
-                `SELECT email FROM users WHERE verified = False`);   
+        try {
+            const results = await pool.query(
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, uai.scholar_type as scholar_type, uai.university as university
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email`);
             
-            // use those emails to get their info
-            for (let x = 0; x < emails.rows.length; x+=1){
-                email1 = emails.rows[x].email;
+                const people = results.rows;
+                return res.render('scholarAccs', { people });
 
-                const people1 = await pool.query(
-                    `SELECT * FROM users_additional_info WHERE email = $1;`, [email1]);
-                list1.push(people1.rows);
-            }
-
-            // formatting
-            let people = [];
-            for (let x = 0; x < list1.length; x++) {
-                people.push(list1[x][0]);
-            }
-<<<<<<< Updated upstream
-        
-            console.log(people);
-=======
->>>>>>> Stashed changes
-            
-            return res.render('scholarAccs', { people });  
-        
-        } catch (err) {
-            res.status(500).send('Internal Server Error');
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
+            return res.status(500).send('Internal Server Error');
         }
-    
-        
     },
 
     // LOAD SCHOLAR PROFILE
     getScholarProfile: async (req, res)=>{
-    
-        try{
-            let email1 = req.params.email;
-            const acc = await pool.query(
-                `SELECT * FROM users WHERE email = $1;`, [email1]);   
+        try {
+            const results = await pool.query(
+                `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as fullname, u.email as email, u.profilepic as profilepic, u.phonenum as phonenum, uai.scholar_type as scholar_type, uai.university as university, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified
+                FROM users u
+                JOIN users_additional_info uai ON u.email = uai.email
+                WHERE u.id = $1`, [req.params.id]);
             
-<<<<<<< Updated upstream
-            console.log(acc.rows);
-=======
->>>>>>> Stashed changes
-            const person1 = await pool.query(
-                `SELECT * FROM users_additional_info WHERE email = $1;`, [email1]);
-             
+            console.log(results.rows);
+
             const getObjectParams = {
                 Bucket: bucketName,
-                Key: acc.rows[0].profilepic, // file name
+                Key: results.rows[0].profilepic, // file name
             }
             const command = new GetObjectCommand(getObjectParams);
             const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
 
-            let person = {
-                account_name: person1.rows[0].account_name,
-                account_num: person1.rows[0].account_num,
-                mail: person1.rows[0].email,
-                scholar_type: person1.rows[0].scholar_type,
-                university: person1.rows[0].university, 
-                degree: person1.rows[0].degree,
-                verified: acc.rows[0].verified,
-                userpic: url
-            }
+            const person = { 
+                userpic: url, 
+                scholar: results.rows[0].fullname, 
+                email: results.rows[0].email, 
+                phone: results.rows[0].phonenum, 
+                scholar_type: results.rows[0].scholar_type, 
+                school: results.rows[0].university, 
+                degree: results.rows[0].degree, 
+                accName: results.rows[0].account_name, 
+                accNum: results.rows[0].account_num, 
+                verified: (results.rows[0].verified).toString()
+            };
 
-            return res.render('scholarProfile', {person});
-
-        } catch (err) {
-            res.status(500).send('Internal Server Error');
+            console.log(person);
+        
+            return res.render('scholarProfile', person);
+        } catch (error) {
+            console.error('Error fetching applications: ', error);
+            return res.status(500).send('Internal Server Error');
         }
-
     },
 
     // VERIFY SCHOLAR ACCOUNT
