@@ -33,7 +33,7 @@
                             <div class="card-body">
                                 <!-- makes the card clickable -->
 								<!-- [TODO] turn into /admin/scholars/:id -->
-                                <a href="/admin/scholars/profile"><h5 class="card-title"><%= app.fullname %></h5></a>
+                                <a href="/admin/scholars/<%= app.id %>"><h5 class="card-title"><%= app.fullname %></h5></a>
 								<h6 class="card-subtitle text-muted"><%= app.scholar_type %></h6>
 								<h6 class="card-subtitle text-muted"><%= app.university %></h6>
                                 <div class="d-flex flex-row">

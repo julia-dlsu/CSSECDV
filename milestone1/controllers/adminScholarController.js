@@ -95,24 +95,29 @@ const controller = {
 
     // VERIFY SCHOLAR ACCOUNT
     verifyScholarAcc: async (req, res)=>{
+        const today = new Date();
+        const day = today.getDate();
+        const month = today.getMonth() + 1; 
+        const year = today.getFullYear();
+        date = year +"-"+ month +"-"+ day;
+
         try{
-        email = req.body.email;
+            email = req.body.email;
 
-        pool.query(
-            `UPDATE users
-             SET verified = True
-             WHERE email = $1;`,[email],(err, results)=>{
-                if (err){
-                    console.error('Error:', err);
-                    res.status(500).send('Internal Server Error');
+            pool.query(
+                `UPDATE users
+                SET verified = True, verifiedby = $1, verifieddate = $2
+                WHERE email = $3;`,[req.user.username, date, email],(err, results)=>{
+                    if (err){
+                        console.error('Error:', err);
+                        res.status(500).send('Internal Server Error');
+                    }
+                    else{
+                        req.flash('success_msg', "User Verified");
+                        return res.redirect('/admin/scholars');
+                    }
                 }
-                else{
-                req.flash('success_msg', "User Verified");
-                return res.redirect('/admin/scholars');
-                }
-            }
-        )
-
+            )
         } catch (err){
             res.status(500).send('Internal Server Error');
         }
