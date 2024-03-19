@@ -50,6 +50,7 @@ const controller = {
                 WHERE sra.status = 'Pending'`);
             
             const applications = results.rows;
+            logger.info("Loading renewal applications")
 
             for (let i = 0; i < applications.length; i++){
                 if (applications[i].eaf != null && applications[i].grades != null){
@@ -87,7 +88,7 @@ const controller = {
             if (process.env.MODE == 'debug'){
                 globalLogger.error('Error fetching applications: ', error);
             }
-          //  console.error('Error fetching applications: ', error);
+            console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
     },
@@ -104,12 +105,28 @@ const controller = {
 
             if (magicNum !== pdfNum){
                 errors.push({message: ".PDF files only."});
+                logger.info('File was checked to not be a .PDF file based on file signature')
             }
 
             const maxSize = 1024 * 1024 * 1; // 1 for 1mb
             if (req.file.size > maxSize ){
                 errors.push({ message: "Max upload size 1MB." });
+                logger.info('Admin tried uploading a picture bigger than 1MB')
             }
+
+            id = req.body['appId']
+
+            const answer = await pool.query(
+                `SELECT status FROM scholar_renewal_applications WHERE id = $1`, [id]);
+            
+
+            if (answer.rows[0].status != 'Pending')
+            {
+                errors.push({message: "Not pending"})
+            }
+
+            console.log("approve", answer.rows[0].status, errors)
+            logger.info("Renewal Applications to be approved", {info: answer.rows[0]})
 
             if (errors.length> 0 ){
                 try {
@@ -154,6 +171,9 @@ const controller = {
                     
                     return res.render('adminRenew', { applications, errors });
                 } catch (error) {
+                    if (process.env.MODE == 'debug'){
+                        globalLogger.error('Error fetching applications', error);
+                    }
                     console.error('Error fetching applications: ', error);
                     return res.status(500).send('Internal Server Error');
                 }
@@ -186,11 +206,15 @@ const controller = {
                     SET status = 'Approved', approve_document = $1, checked_by = $3, date_status_changed = $4 
                     WHERE id = $2;`,[fileName, id, admin, date],(err, results)=>{
                         if (err){
+                            if (process.env.MODE == 'debug'){ 
+                                logger.error('Error:', err); 
+                            }
                             console.error('Error:', err);
                             res.status(500).send('Internal Server Error');
                         }
                         else{
                         req.flash('success_msg', "User Verified");
+                        logger.info('Successful approval of scholar renewal application', {adminInfo: admin});
                         return res.redirect('/admin/renew-scholarship/approved');
                         }
                     }
@@ -199,6 +223,9 @@ const controller = {
             }
     
             } catch (err){
+                if (process.env.MODE == 'debug'){
+                    globalLogger.error('Error in approveRenewApp', err)
+                }
                 console.error(err)
                 res.status(500).send('Internal Server Error');
             }
@@ -208,7 +235,65 @@ const controller = {
     // REJECT RENEWAL APPLICATION
     rejectRenewApp: async (req, res)=>{
         try{
+            let errors = []
             id = req.body['appId'];
+
+            const answer = await pool.query(
+                `SELECT status FROM scholar_renewal_applications WHERE id = $1`, [id]);
+    
+            
+            if (answer.rows[0].status != 'Pending')
+            {
+                errors.push({message: "Not pending"})
+            }
+
+            console.log("reject", answer.rows[0].status, errors)
+            logger.info("Renewal Applications to be rejected", {info: answer.rows[0]})
+            if (errors.length > 0 ){
+                try {
+                    const results = await pool.query(
+                        `SELECT u.id as id, CONCAT(u.firstname, ' ', u.lastname) as scholar, u.email as email, u.profilepic as profilepic, uai.scholar_type as type, uai.university as school, uai.degree as degree, uai.account_name as account_name, uai.account_num as account_num, u.verified as verified, u.verifiedby as verifiedby, sra.id as app_id, sra.app_form as af, sra.approve_document as approved, TO_CHAR(sra.date_submitted, 'YYYY-MM-DD') as dateSubmitted, sra.status as status
+                        FROM users u
+                        JOIN users_additional_info uai ON u.email = uai.email
+                        JOIN thesis_budget_applications sra ON u.email = sra.email
+                        WHERE sra.status = 'Pending'`);
+                    
+                    const applications = results.rows;
+
+        
+                    for (let i = 0; i < applications.length; i++){
+                        if (applications[i].af != null){
+                            const getFormParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].af,
+                            }
+                            const form_command = new GetObjectCommand(getFormParams);
+                            const form_url = await getSignedUrl(s3, form_command, { expiresIn: 3600 });
+                            applications[i].af = form_url
+
+                        }
+                
+                        if (applications[i].approved != null){
+                            const getApproveParams = {
+                                Bucket: bucketName,
+                                Key: applications[i].approved,
+                            }
+                            const approve_command = new GetObjectCommand(getApproveParams);
+                            const approve_url = await getSignedUrl(s3, approve_command, { expiresIn: 3600 });
+                            applications[i].approved = approve_url
+                        }
+                    }
+                    
+                    return res.render('adminThesis', { applications, errors });
+
+                } catch (error) {
+                    if (process.env.MODE == 'debug'){
+                        globalLogger.error('Error fetching applications', error)
+                    }
+                    console.error('Error fetching applications: ', error);
+                    return res.status(500).send('Internal Server Error');
+                }
+            }
 
             const today = new Date();
             const day = today.getDate();
@@ -223,16 +308,23 @@ const controller = {
                 SET status = 'Rejected', checked_by = $2, date_status_changed = $3
                 WHERE id = $1;`,[id, admin, date],(err, results)=>{
                     if (err){
+                        if (process.env.MODE == 'debug'){ 
+                            logger.error('Error:', err); 
+                        }
                         console.error('Error:', err);
                         res.status(500).send('Internal Server Error');
                     }
                     else{
                     req.flash('success_msg', "User Verified");
+                    logger.info('Successful rejection of scholar renewal application', {adminInfo: admin});
                     return res.redirect('/admin/renew-scholarship/rejected');
                     }
                 }
             )
         } catch (err){
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error in rejectRenewApp', err)
+            }
             console.error(err)
             res.status(500).send('Internal Server Error');
         }
@@ -279,9 +371,12 @@ const controller = {
                     applications[i].approve_document = approve_url
                 }
             }
-            
+            logger.info('Getting approved scholar renewal applications');
             return res.render('approvedRenewals', { applications });
         } catch (error) {
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error fetching applications', error);
+            }
             console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }    
@@ -320,9 +415,12 @@ const controller = {
                 }
             }
             
-    
+            logger.info('Getting rejected scholar renewal applications');
             return res.render('rejectedRenewals', { applications });
         } catch (error) {
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error fetching applications', error);
+            }
             console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }

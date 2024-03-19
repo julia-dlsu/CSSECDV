@@ -132,7 +132,7 @@ const controller = {
         // extention based file type check
         if (req.file.mimetype != "image/jpeg" && req.file.mimetype != "image/jpg" && req.file.mimetype != "image/png"){
             errors.push({ message: "File is not a .PNG .JPEG or .JPG file." });
-            logger.info('File was checked to not be ".PNG .JPEG or .JPG based on file extension')
+            logger.info('File uploaded was checked to not be ".PNG .JPEG or .JPG based on file extension')
         }
 
         // file siggy based file type check
@@ -143,7 +143,7 @@ const controller = {
         const riffNum = "52494646"
         if (magicNum !== pngNum && magicNum !== jpegNum && magicNum !== riffNum){
             errors.push({ message: ".PNG .JPEG or .JPG files only." });
-            logger.info('File was checked to not be ".PNG .JPEG or .JPG based on file signature')
+            logger.info('File uploaded was checked to not be ".PNG .JPEG or .JPG based on file signature')
         }
 
         // resize image

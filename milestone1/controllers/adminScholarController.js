@@ -47,9 +47,13 @@ const controller = {
                 JOIN users_additional_info uai ON u.email = uai.email`);
             
                 const people = results.rows;
+                logger.info('Getting scholar accounts')
                 return res.render('scholarAccs', { people });
 
         } catch (error) {
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error fetching applications', error);
+            }
             console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
@@ -87,9 +91,13 @@ const controller = {
             };
 
             console.log(person);
+            logger.info('Getting scholar profile', {info: person})
         
             return res.render('scholarProfile', person);
         } catch (error) {
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error fetching applications', error);
+            }
             console.error('Error fetching applications: ', error);
             return res.status(500).send('Internal Server Error');
         }
@@ -97,25 +105,38 @@ const controller = {
 
     // VERIFY SCHOLAR ACCOUNT
     verifyScholarAcc: async (req, res)=>{
+        const today = new Date();
+        const day = today.getDate();
+        const month = today.getMonth() + 1; 
+        const year = today.getFullYear();
+        date = year +"-"+ month +"-"+ day;
+
         try{
-        email = req.body.email;
+            email = req.body.email;
 
-        pool.query(
-            `UPDATE users
-             SET verified = True
-             WHERE email = $1;`,[email],(err, results)=>{
-                if (err){
-                    console.error('Error:', err);
-                    res.status(500).send('Internal Server Error');
+            pool.query(
+                `UPDATE users
+                SET verified = True, verifiedby = $1, verifieddate = $2
+                WHERE email = $3;`,[req.user.username, date, email],(err, results)=>{
+                    if (err){
+                        if (process.env.MODE == 'debug')
+                        {
+                            globalLogger.error('Error', err)
+                        }
+                        console.error('Error:', err);
+                        res.status(500).send('Internal Server Error');
+                    }
+                    else{
+                        req.flash('success_msg', "User Verified");
+                        logger.info('Scholar account verified', {info: email})
+                        return res.redirect('/admin/scholars');
+                    }
                 }
-                else{
-                req.flash('success_msg', "User Verified");
-                return res.redirect('/admin/scholars');
-                }
-            }
-        )
-
+            )
         } catch (err){
+            if (process.env.MODE == 'debug'){
+                globalLogger.error('Error', err)
+            }
             res.status(500).send('Internal Server Error');
         }
     }

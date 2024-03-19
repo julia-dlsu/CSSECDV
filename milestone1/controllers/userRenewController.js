@@ -165,13 +165,13 @@ const controller = {
         const maxSize = 1024 * 1024 * 1; // 1 for 1mb
         if (eaf_file.size > maxSize || grades_file.size > maxSize){
             errors.push({ message: "Max upload size 1MB." });
-            logger.info('User tried to upload a file larger than 1MB in applyRenewal')
+            logger.info('User tried to upload a file larger than 1MB')
         }
 
         // extention based file type check
         if (eaf_file.mimetype != "application/pdf" || grades_file.mimetype != "application/pdf"){
             errors.push({ message: "Files are not a .PDF file." });
-            logger.info('User did not upload a .PDF file, checked via extension in applyRenewal')
+            logger.info('User did not upload a .PDF file, checked via extension')
         }
 
         // file siggy based file type check
@@ -182,7 +182,7 @@ const controller = {
         const pdfNum = "25504446";
         if (eaf_magicNum !== pdfNum || grades_magicNum !== pdfNum){
             errors.push({ message: ".PDF files only." });
-            logger.info('User did not upload a .PDF file, checked via file signature in applyRenewal')
+            logger.info('User did not upload a .PDF file, checked via file signature')
         }
 
         if (errors.length > 0){
